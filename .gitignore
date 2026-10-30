@@ -1,0 +1,21 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Secrets
+.env
+.env.*
+
+# Large source downloads (provenance is recorded in metadata, not the raw files)
+data/corpus/raw/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
