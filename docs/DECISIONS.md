@@ -87,3 +87,33 @@ Each `Document` will carry a `source_type` (`official`, `journalism`, `academic`
 **Decision.** `uv` for environments and dependencies (fast, lockfile, manages Python versions). Python is pinned to 3.12 because ML wheels (PyTorch, sentence-transformers) often lag on newer releases. The system Python (3.14) is left untouched. Pydantic v2 for schemas, pytest for tests, ruff for linting and formatting. FastAPI is postponed until there is a working pipeline to serve (M9).
 
 **Tradeoffs.** Python 3.12 means giving up the newest language features in exchange for ML library compatibility.
+
+---
+
+## ADR-008: Offset, passage and chunking conventions
+
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M1)
+
+**Context.** Every later guarantee (verbatim citations, reproducibility, provenance) depends on passages being exact, addressable slices of a hashed source.
+
+**Decision.**
+- **Offsets** are half-open `[start, end)` Python `str` indices (Unicode code points), never bytes. *Note for the future frontend:* JavaScript strings index by UTF-16 code units, so `🔍` has length 1 in Python and 2 in JS. Offsets must be converted at the API boundary.
+- **Normalization happens before hashing.** `Document.text` is the canonical snapshot. Any Unicode or whitespace normalization is done by the loader, before the `Document` is constructed. `sha256` is computed over the exact UTF-8 bytes of `text`. Normalizing afterwards would silently invalidate every offset.
+- **Models are frozen and reject unknown fields.** A snapshot can't be edited after it is hashed, and typos in stored JSON fail loudly.
+- **Documents:** text must be non-empty (empty text means an ingestion bug), `retrieved_at` must be timezone-aware, and `id` is a slug (`[A-Za-z0-9._-]+`) so it can be safely embedded in passage IDs and filenames.
+- **Chunking contract:** a hard cap of `len(p.text) <= max_chars`; passages trimmed of surrounding whitespace; every non-whitespace character covered; strictly increasing `start` and `end`; at most `overlap` characters shared between neighbouring passages; split preference paragraph > sentence > whitespace > mid-word; greedy packing.
+- **Passage IDs** have the form `<doc_id>@<first 12 hex chars of sha256>:<start>-<end>`, e.g. `nist-ncstar-1a@7c7e5915088e:71-183`. They are deterministic, unique within a document, and readable: you can see the source, version and span. The hash prefix changes when the content changes, so a stored citation can never resolve to a different version of the text. The doc-id character rule excludes `@` and `:`, so IDs parse without ambiguity.
+
+**Algorithm (sliding window with backward snapping), in `src/verity/ingest.py`:**
+1. One regex pass over the text records the places where a passage may end. Each is ranked: *paragraph* (a whitespace run with 2+ line breaks, or `\u2029`), *sentence* (after `.`, `!`, `?`, `…`, also when followed by closing quotes or brackets, plus CJK `。！？` with no following space), or *word* (any other whitespace). The same pass records where sentences and words start. The position lists are sorted, so each later lookup is a binary search (`bisect`).
+2. For a passage starting at `start`, the window is `[start, start + max_chars]`. It takes the latest paragraph cut in the window if that fills at least half the window. Otherwise it tries the latest sentence cut, then the latest word cut, with the same half-full test. If none of them reaches half full, it takes the latest boundary of any kind. Only when the window has no boundary at all does it cut mid-word.
+3. The next passage starts at the earliest *sentence* start within the last `overlap` characters, otherwise the earliest *word* start, otherwise immediately after the previous passage (no overlap). It never starts mid-word.
+4. If the overlap start would only see whitespace past the previous end, the overlap is dropped and the chunker skips to the next content. This rules out stalls and infinite loops.
+
+Cost is O(n) to find boundaries plus O(log n) per passage. A 4.8M-character document chunks in under 1 second.
+
+**Tradeoffs.** The hard cap sometimes splits long sentences, which hurts readability. It guarantees that passages fit downstream context and embedding limits. Character counts only approximate token counts, which is fine at this stage. Known limitations:
+- **Abbreviations** ("Mr. Smith", "U.S. Army", "a.m. Then") look like sentence ends. This only affects where splits happen, never offsets or correctness. Worth revisiting if retrieval experiments show it matters.
+- **Mid-sentence overlap:** when sentences are longer than `overlap`, the overlap region begins at a word inside a sentence.
+- **Grapheme clusters** (e.g. a letter plus a combining accent) can still be split at a hard split point.
+- **Half-full rule:** the 50% fill threshold is a heuristic and hasn't been tuned. Retrieval experiments (M2, M6) will show whether it should change.
