@@ -6,7 +6,7 @@ of Python ``str`` indices (Unicode code points) into ``Document.text``. Never by
 
 import hashlib
 import re
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Self
 
@@ -15,11 +15,16 @@ from pydantic import BaseModel, ConfigDict, model_validator
 # Document IDs are embedded in passage IDs ("<doc_id>@<hash>:<start>-<end>") and in
 # filenames, so they must not contain separators such as "@", ":", "/" or whitespace.
 _DOC_ID_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
+_PARTIAL_DATE_PATTERN = re.compile(r"\d{4}(-\d{2}(-\d{2})?)?")
 
 
 class SourceType(StrEnum):
-    """Broad category of a source (ADR-006). Used later for claim assessment, never as a
-    shortcut for truth."""
+    """What kind of source a document is (ADR-006).
+
+    This is descriptive metadata only. It is never a credibility score: an
+    official report is not assumed true, and a critique is not assumed false.
+    Claim assessment (later milestones) weighs evidence; it does not trust labels.
+    """
 
     OFFICIAL = "official"
     JOURNALISM = "journalism"
@@ -37,16 +42,58 @@ def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-class Document(BaseModel):
-    """An immutable snapshot of one source's text plus its provenance."""
+class Provenance(BaseModel):
+    """Where a text came from and under what terms.
+
+    ``published`` and ``authors`` are required keys even when unknown (``null`` /
+    ``[]``), so "unknown" is always a deliberate statement, never a forgotten field.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    id: str
     title: str
-    source_uri: str
+    source_name: str  # publisher, agency or outlet
+    authors: tuple[str, ...]  # people; empty for institutional authorship
+    source_uri: str  # the exact URL or location the text was retrieved from
     source_type: SourceType
+    published: str | None  # ISO 8601 at the precision known: "2008", "2008-11" or "2008-11-20"
     retrieved_at: datetime
+    rights: str  # license or copyright status, e.g. "CC BY-ND 4.0"
+
+    @model_validator(mode="after")
+    def _check_provenance(self) -> Self:
+        for name in ("title", "source_name", "source_uri", "rights"):
+            if not getattr(self, name).strip():
+                raise ValueError(f"{name} must not be empty")
+        if any(not author.strip() for author in self.authors):
+            raise ValueError("authors must not contain empty names")
+        if self.retrieved_at.utcoffset() is None:
+            raise ValueError("retrieved_at must be timezone-aware")
+        if self.published is not None:
+            _check_partial_date(self.published)
+            retrieved = self.retrieved_at.date().isoformat()[: len(self.published)]
+            if self.published > retrieved:
+                raise ValueError(
+                    f"published ({self.published}) is after retrieved_at ({retrieved})"
+                )
+        return self
+
+
+def _check_partial_date(value: str) -> None:
+    """Accept YYYY, YYYY-MM or YYYY-MM-DD, and only real calendar dates."""
+    if not _PARTIAL_DATE_PATTERN.fullmatch(value):
+        raise ValueError(f"published must be YYYY, YYYY-MM or YYYY-MM-DD, got {value!r}")
+    year, month, day = (value.split("-") + ["01", "01"])[:3]
+    try:
+        date(int(year), int(month), int(day))
+    except ValueError as exc:
+        raise ValueError(f"published is not a real date: {value!r}") from exc
+
+
+class Document(Provenance):
+    """An immutable snapshot of one source's text plus its provenance."""
+
+    id: str
     text: str
     sha256: str
 
@@ -54,15 +101,9 @@ class Document(BaseModel):
     def _check_invariants(self) -> Self:
         if not _DOC_ID_PATTERN.fullmatch(self.id):
             raise ValueError(f"id must match [A-Za-z0-9._-]+, got {self.id!r}")
-        if not self.title:
-            raise ValueError("title must not be empty")
-        if not self.source_uri:
-            raise ValueError("source_uri must not be empty")
         if not self.text:
             # Whitespace-only text is allowed; truly empty text means ingestion failed.
             raise ValueError("text must not be empty")
-        if self.retrieved_at.utcoffset() is None:
-            raise ValueError("retrieved_at must be timezone-aware")
         # Integrity check: runs on every construction, including loading stored JSON,
         # so a corrupted or edited snapshot can never be loaded silently.
         if self.sha256 != sha256_hex(self.text):
@@ -70,26 +111,14 @@ class Document(BaseModel):
         return self
 
     @classmethod
-    def from_text(
-        cls,
-        *,
-        id: str,
-        title: str,
-        source_uri: str,
-        source_type: SourceType,
-        retrieved_at: datetime,
-        text: str,
-    ) -> "Document":
-        """Build a Document, computing its hash from ``text``."""
-        return cls(
-            id=id,
-            title=title,
-            source_uri=source_uri,
-            source_type=source_type,
-            retrieved_at=retrieved_at,
-            text=text,
-            sha256=sha256_hex(text),
-        )
+    def from_text(cls, *, id: str, text: str, provenance: Provenance) -> "Document":
+        """Build a Document from already-normalized text, computing its hash."""
+        fields = {name: getattr(provenance, name) for name in Provenance.model_fields}
+        return cls(id=id, text=text, sha256=sha256_hex(text), **fields)
+
+    @property
+    def provenance(self) -> Provenance:
+        return Provenance(**{name: getattr(self, name) for name in Provenance.model_fields})
 
 
 class Passage(BaseModel):

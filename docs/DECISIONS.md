@@ -117,3 +117,56 @@ Cost is O(n) to find boundaries plus O(log n) per passage. A 4.8M-character docu
 - **Mid-sentence overlap:** when sentences are longer than `overlap`, the overlap region begins at a word inside a sentence.
 - **Grapheme clusters** (e.g. a letter plus a combining accent) can still be split at a hard split point.
 - **Half-full rule:** the 50% fill threshold is a heuristic and hasn't been tuned. Retrieval experiments (M2, M6) will show whether it should change.
+
+---
+
+## ADR-009: Corpus layout, provenance records and reproducible snapshots
+
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M1b)
+
+**Context.** Verity has to cite exact spans of sources that are often copyrighted, while keeping research runs reproducible. It also needs to record where each text came from without treating that information as a judgment of credibility.
+
+**Decision.**
+- **Commit provenance, not text.** `data/corpus/sources/<id>.json` holds a small provenance record and is committed to git. `data/corpus/raw/<id>.txt` holds the text and is gitignored, alongside the original PDF or HTML kept for auditing. Built snapshots (`data/snapshots/`) are also gitignored.
+- **Reproducibility without redistribution.** The record stores `expected_sha256`, the hash of the *normalized* text, taken at first retrieval. Anyone can run `scripts/fetch_corpus.py` and get a yes/no answer on whether their download matches ours. The fetch tools (pypdf, fontTools) are pinned in `uv.lock`, because a different extractor version can produce different text.
+- **Provenance fields:**
+  - title
+  - source name (publisher, agency or outlet)
+  - authors
+  - source URI (the exact URL the text came from)
+  - source type
+  - publication date
+  - retrieval timestamp (timezone-aware)
+  - rights
+- **Explicit unknowns.** `published` and `authors` must always be present, written as `null` or `[]` when unknown, so "unknown" is a deliberate statement rather than a forgotten field.
+- **No invented precision.** `published` is ISO 8601 at whatever precision is known: `2008`, `2008-11` or `2008-11-20`.
+- **Strict schema.** Unknown fields are rejected, so there is nowhere to slip in a credibility score.
+- **Source type is metadata, never credibility** (see ADR-006).
+- **Loading fails loudly.** Every problem in the corpus is reported at once: a missing record, missing text, bad encoding, a hash mismatch, or duplicate content after normalization. Bad documents are never skipped silently.
+- **Snapshot format:**
+  - `documents.jsonl` and `passages.jsonl`, in canonical sort order
+  - `manifest.json`: format version, Verity version, normalization version, chunking settings, counts, and the sha256 of each data file. It contains no timestamps, so the same input produces byte-identical output.
+  - Files are written atomically (temp file, then rename), and the manifest is written last.
+  - Loading checks integrity at two levels. File hashes catch any byte change. Semantic checks require every document hash to match its text, and every passage to slice its document exactly and carry its canonical ID.
+  - `verify` re-chunks the documents and requires the same passages, which detects changes to the chunker.
+
+**Tradeoffs.** Collaborators have to run the fetch script themselves instead of cloning the texts. A source that changes or disappears online can't be fetched again; the hash shows the drift but can't fix it. Archiving originals (e.g. the Wayback Machine) is a possible follow-up. JSONL is simple and readable, but every load reads the whole snapshot, which is fine at this scale.
+
+---
+
+## ADR-010: Normalization changes encoding only, never content
+
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M1b)
+
+**Decision.** Version `utf8-nfc-lf-v1`, applied once before hashing (`src/verity/normalize.py`):
+1. Strict UTF-8. The byte-order mark is stripped. Any other encoding is rejected, with the byte position of the first invalid byte.
+2. NUL bytes are rejected as a sign of a binary or corrupt file.
+3. Line endings become `\n`.
+4. Control characters are removed, except tab, newline and **form feed**. Form feed is kept because the PDF extractor uses it to mark page breaks, so page numbers can be recovered later for citations.
+5. Text is composed to Unicode NFC.
+
+Deliberately *not* done:
+- **NFKC.** It turns `x²` into `x2` and changes meaning.
+- **Quote straightening, whitespace collapsing, dehyphenation, removing headers and footers.** These change what the source literally says. Where comparisons need to ignore them (e.g. citation matching in M3), they are normalized at comparison time and the stored text stays as it is.
+
+**Tradeoffs.** Stored texts keep PDF extraction artifacts (e.g. `channels.T ypically`, words hyphenated across lines, repeated page headers). That makes them faithful to what the extractor produced, but noisier for retrieval. Any rule change requires a new version string, because it changes every hash.

@@ -29,7 +29,10 @@ _NON_WHITESPACE = re.compile(r"\S")
 _SPACELESS_SENTENCE_END = re.compile(r"[。！？](?=\S)")
 _SENTENCE_TERMINATORS = frozenset(".!?…。！？")
 _CLOSING_PUNCTUATION = frozenset("\"')]}»”’")
-_LINE_BREAKS = ("\n", " ")
+_LINE_BREAKS = ("\n", "\u2028")
+
+# A higher-ranked boundary is used only if the passage would be at least this full.
+MIN_FILL_RATIO = 0.5
 
 
 @dataclass(frozen=True)
@@ -91,7 +94,7 @@ def chunk_document(doc: Document, max_chars: int = 1000, overlap: int = 200) -> 
 
         passages.append(
             Passage(
-                id=_passage_id(doc, start, end),
+                id=passage_id(doc, start, end),
                 doc_id=doc.id,
                 start=start,
                 end=end,
@@ -108,7 +111,8 @@ def chunk_document(doc: Document, max_chars: int = 1000, overlap: int = 200) -> 
     return passages
 
 
-def _passage_id(doc: Document, start: int, end: int) -> str:
+def passage_id(doc: Document, start: int, end: int) -> str:
+    """The canonical ID of the span ``doc.text[start:end]``."""
     # The hash prefix ties the ID to one exact version of the text. A revised
     # document gets new passage IDs even when the offsets are the same.
     return f"{doc.id}@{doc.sha256[:12]}:{start}-{end}"
@@ -125,7 +129,7 @@ def _find_boundaries(text: str) -> _Boundaries:
         if cut == 0:
             continue  # leading whitespace: nothing before it to end a passage
         run_text = run.group()
-        if sum(run_text.count(b) for b in _LINE_BREAKS) >= 2 or " " in run_text:
+        if sum(run_text.count(b) for b in _LINE_BREAKS) >= 2 or "\u2029" in run_text:
             paragraph.append(cut)
             is_sentence_boundary = True
         elif _ends_sentence(text, cut):
@@ -166,7 +170,7 @@ def _choose_end(
     if limit >= len(text):
         cut = len(text)  # the rest of the document fits
     else:
-        cut = _best_cut(bounds, start, floor, limit, min_fill=max_chars // 2)
+        cut = _best_cut(bounds, start, floor, limit, min_fill=int(max_chars * MIN_FILL_RATIO))
     end = start + len(text[start:cut].rstrip())
     return end if end > floor else None
 

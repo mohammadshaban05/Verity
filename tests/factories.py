@@ -4,7 +4,7 @@ import hashlib
 from datetime import UTC, datetime
 from typing import Any
 
-from verity.models import Document, SourceType
+from verity.models import Document, Provenance, SourceType
 
 FIXED_TIME = datetime(2026, 10, 30, 12, 0, tzinfo=UTC)
 
@@ -14,18 +14,30 @@ def reference_sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def provenance_kwargs(**overrides: Any) -> dict[str, Any]:
+    """Valid Provenance fields; override any field."""
+    kwargs: dict[str, Any] = {
+        "title": "Test document",
+        "source_name": "Test Publisher",
+        "authors": ("A. Author",),
+        "source_uri": "test://test-doc",
+        "source_type": SourceType.OTHER,
+        "published": "2004-07-22",
+        "retrieved_at": FIXED_TIME,
+        "rights": "Test fixture",
+    }
+    kwargs.update(overrides)
+    return kwargs
+
+
+def make_provenance(**overrides: Any) -> Provenance:
+    return Provenance(**provenance_kwargs(**overrides))
+
+
 def document_kwargs(**overrides: Any) -> dict[str, Any]:
     """Valid Document constructor arguments; override any field."""
     text = overrides.get("text", "The report was published in 2004.")
-    kwargs: dict[str, Any] = {
-        "id": "test-doc",
-        "title": "Test document",
-        "source_uri": "test://test-doc",
-        "source_type": SourceType.OTHER,
-        "retrieved_at": FIXED_TIME,
-        "text": text,
-        "sha256": reference_sha256(text),
-    }
+    kwargs = provenance_kwargs(id="test-doc", text=text, sha256=reference_sha256(text))
     kwargs.update(overrides)
     return kwargs
 

@@ -6,8 +6,8 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from factories import FIXED_TIME, document_kwargs, reference_sha256
-from verity.models import Document, Passage, SourceType, sha256_hex
+from factories import document_kwargs, make_provenance, provenance_kwargs, reference_sha256
+from verity.models import Document, Passage, Provenance, SourceType, sha256_hex
 
 # --- sha256_hex ------------------------------------------------------------------
 
@@ -46,16 +46,11 @@ def test_document_accepts_valid_input() -> None:
     assert doc.source_type is SourceType.OTHER
 
 
-def test_document_from_text_computes_hash() -> None:
-    doc = Document.from_text(
-        id="nist-ncstar-1a",
-        title="Final Report on the Collapse of WTC Building 7",
-        source_uri="https://example.org/ncstar1a.pdf",
-        source_type=SourceType.OFFICIAL,
-        retrieved_at=FIXED_TIME,
-        text="Some text.",
-    )
+def test_document_from_text_computes_hash_and_copies_provenance() -> None:
+    provenance = make_provenance(source_type=SourceType.OFFICIAL)
+    doc = Document.from_text(id="nist-ncstar-1a", text="Some text.", provenance=provenance)
     assert doc.sha256 == reference_sha256("Some text.")
+    assert doc.provenance == provenance
 
 
 def test_document_accepts_source_type_as_string() -> None:
@@ -110,7 +105,7 @@ def test_document_accepts_slug_ids(good_id: str) -> None:
     Document(**document_kwargs(id=good_id))
 
 
-@pytest.mark.parametrize("field", ["title", "source_uri"])
+@pytest.mark.parametrize("field", ["title", "source_name", "source_uri", "rights"])
 def test_document_rejects_empty_metadata(field: str) -> None:
     with pytest.raises(ValidationError):
         Document(**document_kwargs(**{field: ""}))
@@ -130,6 +125,44 @@ def test_document_is_immutable() -> None:
     doc = Document(**document_kwargs())
     with pytest.raises(ValidationError):
         doc.text = "Edited after hashing."  # type: ignore[misc]
+
+
+# --- Provenance ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("published", ["2008", "2008-11", "2008-11-20", None])
+def test_provenance_accepts_partial_or_unknown_publication_dates(published: str | None) -> None:
+    assert make_provenance(published=published).published == published
+
+
+@pytest.mark.parametrize("published", ["11/2008", "2008-13", "2008-02-30", "08", "2008-1"])
+def test_provenance_rejects_malformed_publication_dates(published: str) -> None:
+    with pytest.raises(ValidationError):
+        make_provenance(published=published)
+
+
+def test_provenance_rejects_publication_after_retrieval() -> None:
+    with pytest.raises(ValidationError):
+        make_provenance(published="2027-01")  # retrieved 2026-10-30
+
+
+@pytest.mark.parametrize("field", ["published", "authors"])
+def test_provenance_requires_unknown_values_to_be_explicit(field: str) -> None:
+    # "Unknown" must be written as null / [], never left out by accident.
+    kwargs = provenance_kwargs()
+    del kwargs[field]
+    with pytest.raises(ValidationError):
+        Provenance(**kwargs)
+
+
+def test_provenance_rejects_blank_author_names() -> None:
+    with pytest.raises(ValidationError):
+        make_provenance(authors=("A. Author", " "))
+
+
+def test_provenance_rejects_whitespace_only_fields() -> None:
+    with pytest.raises(ValidationError):
+        make_provenance(rights="   ")
 
 
 # --- Passage -----------------------------------------------------------------------

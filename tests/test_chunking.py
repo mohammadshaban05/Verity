@@ -58,7 +58,7 @@ def test_rejects_invalid_parameters(max_chars: int, overlap: int) -> None:
 # --- Trivial inputs ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("text", [" ", "\n\n\t  ", "  "])
+@pytest.mark.parametrize("text", [" ", "\n\n\t  ", "\u00a0\u2028"])
 def test_whitespace_only_document_yields_no_passages(text: str) -> None:
     assert chunk_document(make_doc(text), max_chars=100, overlap=10) == []
 
@@ -186,7 +186,7 @@ UNICODE_SAMPLES = {
     "cjk_no_spaces": "这是一个测试句子。" * 120,
     "emoji": "Evidence 🔍 matters. " * 80,
     "combining_marks": "Café au lait. " * 80,
-    "mixed_newlines": "Line one.\r\nLine two.\n\n\nLine three. " * 40,
+    "mixed_newlines": "Line one.\r\nLine two.\n\n\nLine three.\u2028" * 40,
 }
 
 
@@ -239,7 +239,7 @@ def test_ids_differ_when_content_changes_under_same_doc_id() -> None:
 
 # --- Property-based: random documents, random parameters ---------------------------
 
-ALPHABET = list("abcxyz ABC .!?,\n\t") + ["\n\n", "é", "ء", "中", "😀", "́", " "]
+ALPHABET = list("abcxyz ABC .!?,\n\t") + ["\n\n", "é", "ء", "中", "😀", "́", "\u00a0"]
 
 
 @settings(max_examples=300, deadline=None)

@@ -14,3 +14,15 @@ uv run pytest                # run tests
 uv run ruff check .          # lint
 uv run ruff format .         # format
 ```
+
+## Corpus and snapshots
+
+Source texts are not in the repository (licensing). Only their provenance records are. To rebuild locally:
+
+```bash
+uv run --group corpus python scripts/fetch_corpus.py   # download + extract into data/corpus/raw/
+uv run python -m verity ingest --overwrite             # load, normalize, chunk -> data/snapshots/current
+uv run python -m verity verify                         # integrity + reproducibility check
+```
+
+See [data/corpus/README.md](data/corpus/README.md).

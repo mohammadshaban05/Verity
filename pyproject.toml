@@ -9,6 +9,10 @@ dependencies = [
 ]
 
 [dependency-groups]
+corpus = [
+    "fonttools>=4.68.0",
+    "pypdf[crypto]>=6.21.4",
+]
 dev = [
     "hypothesis>=6.170.14",
     "pytest>=8",

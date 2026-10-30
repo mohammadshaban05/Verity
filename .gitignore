@@ -19,3 +19,6 @@ data/corpus/raw/
 .DS_Store
 .vscode/
 .idea/
+
+# Built snapshots contain full source text (possibly copyrighted)
+data/snapshots/
