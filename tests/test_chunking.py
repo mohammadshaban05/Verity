@@ -79,8 +79,8 @@ def test_document_exactly_max_chars_is_one_passage() -> None:
 
 
 def test_prefers_paragraph_breaks() -> None:
-    p1 = "The commission interviewed more than twelve hundred people."
-    p2 = "Its final report was released to the public in July 2004."
+    p1 = "The survey interviewed more than twelve hundred people."
+    p2 = "Its final report was released to the public in May 2019."
     doc = make_doc(f"{p1}\n\n{p2}")
     max_chars = max(len(p1), len(p2)) + 5  # each fits alone; together they don't
     assert len(doc.text) > max_chars

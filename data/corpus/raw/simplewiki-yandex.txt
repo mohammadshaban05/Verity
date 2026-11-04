@@ -1,0 +1,9 @@
+Yandex N.V. (/ˈjʌndɛks/; Яндекс) is a Russian internet company and search engine. It is the most popular search engine in the Russian language. The website has gone through many changes like being just a searching browser, an entire email and becoming into a multi-service website. The company was originally founded in 2000 by Arkady Volozh but the website didn't start until 2006. Currently headquartered in Moscow, Russia.
+
+Other programs
+
+Yandex Translate
+
+Yandex runs Yandex Translate, a machine translation program. It uses computer software to translate text or speech from Russian into either English or Ukrainian or back. Yandex Translate started in 2011. The team that built it read thousands of documents and their translations and built a dictionary for Yandex Translate.
+
+In 2020, the Mozilla Firefox web browser added a tool to that could translate webpages. That tool can use only Google Translate and Yandex Translate.

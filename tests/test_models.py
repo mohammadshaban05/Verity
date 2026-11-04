@@ -25,7 +25,7 @@ def test_sha256_hex_matches_known_vectors(text: str, expected: str) -> None:
 
 
 def test_sha256_hex_uses_utf8_for_non_ascii() -> None:
-    text = "NIST — بيان — 报告 — 🔍"
+    text = "Report — بيان — 报告 — 🔍"
     assert sha256_hex(text) == reference_sha256(text)
 
 
@@ -48,7 +48,7 @@ def test_document_accepts_valid_input() -> None:
 
 def test_document_from_text_computes_hash_and_copies_provenance() -> None:
     provenance = make_provenance(source_type=SourceType.OFFICIAL)
-    doc = Document.from_text(id="nist-ncstar-1a", text="Some text.", provenance=provenance)
+    doc = Document.from_text(id="survey-report-2019", text="Some text.", provenance=provenance)
     assert doc.sha256 == reference_sha256("Some text.")
     assert doc.provenance == provenance
 
@@ -100,7 +100,7 @@ def test_document_rejects_bad_id(bad_id: str) -> None:
         Document(**document_kwargs(id=bad_id))
 
 
-@pytest.mark.parametrize("good_id", ["911-commission-ch1", "NCSTAR_1A", "v1.2"])
+@pytest.mark.parametrize("good_id", ["2019-survey-ch1", "IPCC_AR6", "v1.2"])
 def test_document_accepts_slug_ids(good_id: str) -> None:
     Document(**document_kwargs(id=good_id))
 

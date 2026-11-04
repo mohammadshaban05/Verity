@@ -1,0 +1,14 @@
+{
+  "title": "Over-expression of RCAN1 causes Down syndrome-like hippocampal deficits that alter learning and memory.",
+  "source_name": "SciFact corpus (Wadden et al., 2020); abstract from S2ORC",
+  "authors": [],
+  "affiliations": [],
+  "source_uri": "https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz#doc_id=11992632",
+  "source_type": "academic",
+  "publication_status": "Abstract of a research article (Semantic Scholar corpus ID 11992632), as distributed in the SciFact corpus. The dataset does not record authors, venue, date or peer-review status, and they were not looked up. Selected as: random distractor.",
+  "disclosures": "Not available: the abstract states none and the full article was not checked.",
+  "published": null,
+  "rights": "ODC-By 1.0 (S2ORC abstracts, via SciFact). Redistributed with attribution.",
+  "retrieved_at": "2026-11-04T02:24:22+00:00",
+  "expected_sha256": "b7b8fc9be631b2e444a572de911d7fe77fdad7dbf8b43bcb9dc10225f8d10215"
+}

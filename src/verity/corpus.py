@@ -3,10 +3,11 @@
 Layout (ADR-009):
 
     <corpus>/sources/<doc_id>.json   provenance record; small, committed to git
-    <corpus>/raw/<doc_id>.txt        source text in UTF-8; local only, never committed
+    <corpus>/raw/<doc_id>.txt        source text in UTF-8; committed only if its license
+                                     allows redistribution (ADR-013)
 
 The file name gives the document ID. Any other files in ``raw/`` (such as the
-original PDF or HTML a text was extracted from) are kept for auditing and
+original PDF, HTML or JSON a text was extracted from) are kept for auditing and
 ignored by the loader.
 """
 

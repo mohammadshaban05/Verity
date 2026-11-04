@@ -1,0 +1,14 @@
+{
+  "title": "Randomized dose-finding clinical trial of oncolytic immunotherapeutic vaccinia JX-594 in liver cancer",
+  "source_name": "SciFact corpus (Wadden et al., 2020); abstract from S2ORC",
+  "authors": [],
+  "affiliations": [],
+  "source_uri": "https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz#doc_id=27437459",
+  "source_type": "academic",
+  "publication_status": "Abstract of a research article (Semantic Scholar corpus ID 27437459), as distributed in the SciFact corpus. The dataset does not record authors, venue, date or peer-review status, and they were not looked up. Selected as: random distractor.",
+  "disclosures": "Not available: the abstract states none and the full article was not checked.",
+  "published": null,
+  "rights": "ODC-By 1.0 (S2ORC abstracts, via SciFact). Redistributed with attribution.",
+  "retrieved_at": "2026-11-04T02:24:22+00:00",
+  "expected_sha256": "40eb514bc70f8608396a915db1c4ed37d4c26771238e27d33bc1bddf17c18cc3"
+}

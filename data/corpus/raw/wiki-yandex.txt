@@ -1,0 +1,115 @@
+Yandex LLC (Russian: Яндекс, romanized: Yandeks, IPA: [ˈjandəks] ) is a Russian technology company that provides Internet-related products and services including a web browser, search engine, cloud computing, web mapping, online food ordering, streaming media, online shopping, and a ridesharing company. Yandex Search is the largest search engine in Russia with an estimated 72% market share in Russia and a 2.8% market share worldwide. Yandex Taxi is the largest ridesharing company in Russia.
+
+The company also develops generative AI models and the Alice AI virtual assistant.
+
+Yandex was founded by Arkady Volozh and launched its first product, a search engine, in 1997. Due to its significant media activities in Russia, the company has long faced pressure for control by the government of Russia. In July 2024, in a transaction brought about by international sanctions during the Russian invasion of Ukraine and restrictions on foreign ownership, Nebius Group, the Dutch holding company that owned Yandex, completely sold off its Russian assets to a consortium of a group of Russian investors for a discounted price of US$5.3 billion.
+
+History
+
+1990s
+
+In 1990, Arkady Volozh contacted Ilya Segalovich (1964–2013), a friend of his from high school, to join his venture developing algorithms to search Russian texts. They developed search software together under the company name Arcadia. In 1993, they invented the name "Yandex" as an easy way to remember "Yet Another iNDEXer". This is also a bilingual pun on "index" since "Я" ("ya") means "I" in Russian. On 23 September 1997, the Yandex.ru search engine was launched and presented at the Softool exhibition in Moscow. In 1998, Yandex launched contextual advertising on its search engine. In 2000, Yandex was incorporated in Cyprus as a standalone company.
+
+2000s
+
+Arcadia became part of CompTek, a software and computer parts supply company, with Volozh as the CEO in 2000. In 2000, Baring Vostok Capital Partners acquired 35.72% of the company for $5.28 million. In 2001, Yandex launched the Yandex.Direct online advertising network. The company became profitable in 2003. Between 2004 and 2006, Tiger Technologies obtained an 11% ownership stake in the company.
+
+In September 2005, Yandex opened an office in Ukraine and launched a Ukrainian website. In 2007, Yandex introduced a customized search engine for Ukrainian users, and in May 2007, it opened a development center in Kyiv. In 2008, Yandex increased bandwidth between its Moscow data centers and UA-IX in Ukraine fivefold. In 2009, all services of www.yandex.ua were localized for the Ukrainian market. In 2010, Yandex launched its "Poltava" search engine algorithm for Ukrainian users based on its MatrixNet technology. In March 2007, Yandex acquired moikrug.ru, a Russian social networking service.
+
+In June 2008, Yandex announced the formation of Yandex Labs in Silicon Valley to foster innovation in search and advertising technology, with Vishal Makhijani as its CEO. Also in June 2008, Yandex acquired SMILink, a Russian road traffic monitoring agency, which was merged into Yandex Maps. In September 2008, the company acquired the rights to the Punto Switcher software program, an automatic Russian-to-English keyboard layout switcher. In January 2009, Firefox 3.5 replaced Google with Yandex as the default search provider for Russian-language builds. Google was reinstated in 2012.
+
+2010s
+
+In May 2010, Yandex launched an English language-only search engine. In September 2010, Yandex launched Yandex Music, a music streaming service, with a catalogue of 800,000 tracks from 58,000 performers. Also in September 2010, Yandex invested in a $4.3 million financing round by Face.com (formerly Vizi Labs). The company was acquired by Facebook in 2012 and Yandex received $5.7 million and 142,479 shares of Facebook for its stake. In December 2010, Yandex launched Yandex.Start to find startups and work with them systematically, and purchased WebVisor's behavior analysis technology.
+
+In January 2011, the company acquired single sign-in service Loginza. On 24 May 2011, the holding company that owned Yandex, Yandex N.V. (now called Nebius Group), raised $1.3 billion in an initial public offering on NASDAQ, the biggest initial public offering for a dot-com company since Google's offering in 2004. At that time, Baring Vostok Capital Partners owned a 35% stake in the company and Tiger Technologies owned a 15% stake. In June 2011, Yandex and Rambler signed an ad network deal to freeze out Russian competitors. In August 2011, Yandex acquired The Tweeted Times, a news delivery startup. In September 2011, the company launched its web portal in Turkey in 2011 and opened an office in Istanbul.
+
+Also in September 2011, Yandex acquired 10% of Blekko for a $15 million investment as part of a $30 million financing round. In November 2011, it acquired software developer SPB Software for $38 million. In March 2012, the company opened its first European office in Lucerne to serve advertising clients in the EU. In June 2012, the company acquired a 25% stake in Seismotech for $1 million. In October 2012, Yandex launched a Chromium-based web browser. In November 2012, Yandex launched a mapping service for Europe and the U.S.
+
+In March 2013, the company added an English language user interface to its translation mobile app to widen its international appeal. In July 2013, Mail.Ru began placing Yandex Direct ads on its search result pages. In October 2013, the company acquired KinoPoisk, the biggest Russian movie search engine. Also in 2013, Yandex became the largest media property in Russia in terms of revenue.
+
+In October 2013, Yandex launched SpeechKit, a cloud-based speech-recognition service for application developers.
+
+In 2014, the company opened its first European research and development office in Berlin. In February 2014, Yandex invested several million dollars in MultiShip. In March 2014, it acquired Israeli geolocation startup KitLocate and opened a research and development (R&D) office in Israel. In May 2014, the company invested in SalesPredict, an Israeli company developing technology for predicting commercial sales. In June 2014, the company acquired Auto.ru, an online marketplace and classified advertising website for automobiles, for $175 million. In November 2014, the company launched a new Chromium-based browser for Windows and Mac OS X.
+
+In May 2015, Yandex launched a minimalist web browser. In June 2015, the company launched Yandex.Radio. In September 2015, the company opened an office in Shanghai to facilitate work with Chinese companies operating on the Russian language market. In December 2015, the company acquired Internet security company Agnitum.
+
+In June 2017, the company closed its offices in Ukraine after its bank accounts were blocked. Also in June 2017, the company invested in a $5 million financing round by Doc+. In October 2017, the company introduced its intelligent personal assistant, Alisa (Alice), for Android, iOS, and Microsoft Windows. In December 2017, the company acquired food delivery Foodfox.
+
+In 2018, the company launched Yandex Games, an Internet gaming platform accessible via browser and mobile. By 2022, 10,000 games were available on the platform. As of January 2022, it had more than 11 million players per month. The platform generates income via advertising and in-app purchases as well as its in-game currency called "Yans". In February 2018, the company showed off the first tests of its self-driving cars in Moscow. Also in February 2018, Yandex acquired Uber's businesses in Russia, Kazakhstan, Azerbaijan, Armenia, Belarus and Georgia.
+
+In May 2018, Sberbank and Yandex completed a joint venture deal to develop a B2C eCommerce ecosystem. Also in May 2018, the company unveiled Yandex.Station, a smart speaker. In August 2018, Yandex acquired fuel delivery service Toplivo v Bak. In October 2018, Yandex acquired Edadil (Russian: Едадил, lit. 'grocery deals'), a deal aggregator service. In December 2018, Yandex announced the release of the Yandex.Phone, a smartphone.
+
+In September 2019, Yandex announced plans to create an investment portal in partnership with VTB Bank. In October 2019, the company unveiled the second smart speaker of its own design—"Yandex. Station Mini." Also in October 2019, Yandex Taxi acquired Partiya Edy ('The Party of Food'). In November 2019, the company was forced by the Russian government to undergo a corporate restructure, giving more influence to pro-Kremlin board members. Vladimir Putin was reportedly personally involved in the negotiations.
+
+2020s
+
+For the month of April 2020, during the COVID-19 pandemic in Russia, Yandex made its home COVID-19 testing service free of charge for all residents of certain areas. In July 2020, the company terminated its joint venture with Sberbank, fully acquiring Yandex Market and selling its interest in Yandex Money, which was rebranded as YooMoney. In August 2020, the company's offices in Minsk were raided by authorities to suppress protesters of the results of the 2020 Belarusian presidential election. In September 2020, Yandex completed the corporate spin-off of its self-driving car division, Yandex SDG (now Avride). In October 2020, Yandex held merger negotiations with Tinkoff Bank (now T-Bank) but the two sides failed to agree on terms.
+
+In March 2021, the company launched Yandex Pay, a cashless payment service. In June 2021, Yandex, VTB Bank, LANIT Group and computer hardware producer Gigabyte founded a joint venture to produce servers in Russia. Also in August 2021, Yandex acquired Uber's stake in its self-driving car division and food delivery business in a $1 billion transaction. In September 2021, the IT company's servers were subjected to the largest DDoS attack in the history of the Russian internet, known as Runet. Also in September 2021, the company completed the corporate spin-off of Clickhouse. In October 2021, construction of a new plant in Ryazan Oblast was launched with 1 billion roubles during the first stage of investments. The new plant will produce servers, data storage systems, gateways, and smart equipment under the "Openyard" brand. In June 2023, Yandex announced it was looking for ways to exit the joint venture. Also in October 2021, Yandex acquired Wind's Tel Aviv operations.
+
+In January 2022, Yandex acquired eLama, a digital advertising platform. That same month, it also acquired BandLink. In April 2022, CEO Elena Bunina resigned and moved to Israel. In June 2022, Volozh resigned as CEO and from the board of directors. In September 2022, the bank accounts of the company's affiliates in Finland, including those of Yango Group, were frozen. Also in September 2022, Zen, Zen News, and yandex.ru were sold to VK. Yandex acquired Delivery Club from VK. The company then changed its home page to ya.ru. In December 2022, Yandex registered the company Beyond ML in Armenia to hold international investments. Also in December 2022, Arkady Volozh resigned from the company. In May 2023, Yandex launched YandexGPT, a large language model analogous to ChatGPT. It implemented the YandexGPT generative AI model in the virtual assistant Alice. Between 2021 and 2023, Yandex introduced automatic voice-over translation for any YouTube video in English, Chinese, French, Spanish, and German.
+
+In June 2023, the company launched a test of its first self-driving taxi in Moscow. Also in 2023, the company opened an office in Belgrade, its biggest international office. In July 2024, in a transaction brought about by international sanctions during the Russian invasion of Ukraine and restrictions on foreign ownership, Nebius Group, the Dutch holding company that owned Yandex, sold its Russian assets to a group of Russian investors for a discounted price of US$5.3 billion. The publicly identified investor group includes Alexander Chachava (25%), Pavel Prass (15%), Lukoil (15%), Alexander Ryazanov (10%), and senior management (35%). However, it is speculated that the publicly identified owners are intermediaries for others. Other bidders for the assets included Vladimir Potanin. In October 2024, the company announced plans to invest $400 million in Turkey.
+
+Ukrainian drone attacks
+
+On 8 October 2026, Ukraine's USF attacked a Yandex data centre in Sasovo, Ryazan Oblast, with drones, starting a large fire at the complex. There were reports of "major disruptions" to internet access to the Yandex Cloud following disruption to the data centre's power supply because of the fire. The following day, 9 October 2026, the Yandex data centre in Kaluga, Kaluga Oblast, was hit by drones, with a number of modules being taken out. A third Yandex data centre, in Vladimir, Vladimir Oblast, was attacked on 11 October. This 50 MW centre with its 2,880 server racks was completely shut down as a result.
+
+Artificial intelligence
+
+In October 2025, Yandex introduced the Alice AI model family, comprising the Alice AI LLM language model, the Alice AI VLM vision–language model and the Alice AI Art image-generation model. The models are used in the Alice AI assistant.
+
+According to Yandex, a specialised model, Alice AI Search, has generated answers in Yandex Search since July 2026.
+
+In October 2026, Yandex introduced Sona, a generative recommendation model that combines candidate selection and ranking. The company tested it for music recommendations on smart speakers with Alice.
+
+Open source
+
+In 2009, Yandex began development on its project MatrixNet. It was a unique, patented algorithm for building machine learning models, which utilized one of the original gradient boosting schemes. In July 2017, the CatBoost library was released to the public. It implements the MatrixNet algorithm for building machine learning models. At the time of release, the technology was already in use as part of a collaborative project with the European Organization for Nuclear Research (CERN) to analyze the results of particle experiments conducted. CatBoost is used by JetBrains for code completion, CloudFlare for bot detection, and Careem for trip-distance determination.
+
+In 2012, Yandex initiated research and development in the field of natural speech processing.[citation needed] In October 2013, Yandex launched Cocaine, an open-source PaaS system for creating custom cloud-hosting apps. On 19 April 2022, the company published the source code for the YDB database management system. It is used in its own voice assistant Alice as well as in Yandex.Go and Yandex Market services. In March 2023, Yandex published the source code for YTsaurus, a platform for work with big data.
+
+Yandex released YaFSDP, a library for distributed training of large language models, in June 2024. In January 2025, it released Perforator, a continuous profiling system, as open-source software.
+
+In 2025, the company published pretrained and instruction-tuned versions of YandexGPT 5 Lite under a custom licence. In September 2026, it released Alice AI Search Pretrain and AliceAI-Foundation-80B-A3B-Base under the Apache 2.0 licence.
+
+In May 2025, Yandex released Yambda, a dataset for recommender-system research containing 4.79 billion anonymised interactions between users and music tracks on Yandex Music.
+
+Data breaches
+
+Cyberattack (October–November 2018)
+
+In October and November 2018, Yandex was targeted in a cyberattack using the Regin malware, aimed at stealing technical information from its research and development unit on how users were authenticated. An investigation by Kaspersky Lab attributed the hacks to Five Eyes intelligence agencies.
+
+Compromise of email accounts of 5,000 users (February 2021)
+
+In February 2021, Yandex admitted that one of its system administrators with access rights to Yandex's email service had enabled unauthorized access, leading to almost 5,000 Yandex email inboxes being compromised. The company sent an apology by email to the owners of the compromised mailboxes, but no compensation was announced.
+
+Source code leak (January 2023)
+
+On 25 January 2023, a leaked archive with 44 GB of Yandex source code was shared on BreachForums via BitTorrent.
+
+Legal issues
+
+Legal issues in Ukraine
+
+In May 2017, Yandex was banned in Ukraine by Presidential Decree No. 133/2017. On 1 June 2017, Yandex closed its offices in Kyiv and Odesa after the Security Service of Ukraine raided the offices and accused the company of illegally collecting Ukrainian users' data and sending it to Russian security agencies. The firm denied any wrongdoing. In June 2022, after the Russian invasion of Ukraine, the company no longer displayed any national borders on Yandex Maps.
+
+Legal issues in Russia
+
+In June 2019, RBC Group reported that Yandex had refused a request by the Russian Federal Security Service (FSB) under the Yarovaya law to surrender encryption keys that could decrypt the private data of its email service and cloud storage users. The company argued that it was impossible to comply with the relevant law without compromising its users' privacy. Maxim Akimov, Deputy Prime Minister of Russia, said that the government would take action to relieve FSB pressure on the company. Alexander Zharov, head of the Federal Service for Supervision of Communications, Information Technology and Mass Media, subsequently said that Yandex and the FSB had reached an agreement where the company would provide the required data without handing over the encryption keys.
+
+In April 2021, Yandex was accused by the Federal Antimonopoly Service of promoting its own products in its search results. In late March 2022, Yandex was the subject of an investigation by Financial Times and Me2B Alliance, a nonprofit organization, as part of an application auditing campaign led by researcher Zach Edwards. Edwards and four expert researchers, including Cher Scarlett, a former Apple security engineer, found that a software development kit (SDK) called AppMetrica, a product of Yandex, was harvesting data from more than 52,000 applications such as a user's device fingerprint and IP address and storing it in Russia on Yandex's servers, which they said due to Russian law, and the nature of SDKs, could be accessed by Russian authorities without their knowledge. Yandex denied that it was practical to identify users based on the information harvested and stated that requests for the data would be rejected.
+
+In February 2022, upon the Russian invasion of Ukraine, Yandex was threatened by the Russian government regarding information that it posted about Ukraine and added an online banner warning that some search results may contain inaccurate information. In March 2022, the Bureau of Investigative Journalism reported that Yandex-delivered ads promoted misinformation about the war in Ukraine. Many of the articles displayed in Yandex's news aggregators were also from Russian state-owned and state-sponsored sources and the top search results about the war would sometimes prominently feature pro-war websites. Also in March 2022, Tigran Khudaverdyan resigned as executive director and deputy CEO after being sanctioned by the European Union for "hiding information" from the Russian public through the manipulation of search results. According to an investigation by Meduza published on 5 May 2022, since 2016, the top-5 results on the Yandex home page only include pro-Kremlin media approved by the Presidential Administration of Russia. Yandex stated that the highest-ranked news on its home page is generated automatically through its algorithm. However, under Russian law, only news received from registered media sources may appear.
+
+In June 2023, Yandex was fined 2 million roubles by a Moscow court for its repeated refusal to share user information with the Federal Security Service. In July 2023, Kinopoisk, a subsidiary of the company, was fined 1 million rubles for "showing films demonstrating non-traditional sexual relations". The fine came after Russia outlawed public displays of non-traditional relationships and lifestyles to people of any age. In the first half of 2024, the company received 36,540 requests from the Russian government to disclose user data, a 12% increase from the prior year. In August 2024, the company was accused of collaborating with the Federal Security Service (FSB) to direct users to fake websites for the Freedom of Russia Legion and the Russian Volunteer Corps, groups composed of Russian supporters of Ukraine. The websites collected data from Russians who may be interested in joining the organisations and supporting Ukraine.
+
+In popular culture
+
+In April 2014, a film about the history of Yandex called Startup was released. The film was compared to The Social Network.
+
+Statistics
+
+Estimate of daily number of queries on Yandex Search by year

@@ -1,0 +1,57 @@
+B-lymphocyte antigen CD19, also known as CD19 molecule (Cluster of Differentiation 19), B-Lymphocyte Surface Antigen B4, T-Cell Surface Antigen Leu-12 and CVID3 is a transmembrane protein that in humans is encoded by the gene CD19. In humans, CD19 is expressed in all B lineage cells. Contrary to some early doubts, human plasma cells do express CD19, as confirmed by others. CD19 plays two major roles in human B cells: on the one hand, it acts as an adaptor protein to recruit cytoplasmic signaling proteins to the membrane; on the other, it works within the CD19/CD21 complex to decrease the threshold for B cell receptor signaling pathways. Due to its presence on all B cells, it is a biomarker for B lymphocyte development, lymphoma diagnosis and can be utilized as a target for leukemia immunotherapies.
+
+Structure
+
+In humans, CD19 is encoded by the 7.41 kilobase CD19 gene located on the short arm of chromosome 16. It contains at least fifteen exons, four that encode extracellular domain and nine that encode cytoplasmic domains, with a total of 556 amino acids. Experiments show that there are multiple mRNA transcripts; however, only two have been isolated in vivo.
+
+CD19 is a 95 kd Type I transmembrane glycoprotein in the immunoglobulin superfamily (IgSF) with two extracellular C2-set Ig-like domains and a relatively large, 240 amino acid, cytoplasmic tail that is highly conserved among mammalian species. The extracellular C2-type Ig-like domains are divided by a potential disulfide linked non-Ig-like domain and N-linked carbohydrate addition sites. The cytoplasmic tail contains at least nine tyrosine residues near the C-terminus. Within these residues, Y391, Y482, and Y513 have been shown to be essential to the biological functions of CD19. Phenylalanine substitution for tyrosine at Y482 and Y513 leads to the inhibition of phosphorylation at the other tyrosines.
+
+Expression
+
+CD19 is widely expressed during all phases of B cell development until terminal differentiation into plasma cells. During B cell lymphopoiesis, CD19 surface expression starts during immunoglobulin (Ig) gene rearrangement, which coincides during B lineage commitment from hematopoietic stem cell. Throughout development, the surface density of CD19 is highly regulated. CD19 expression in mature B cells is threefold higher than that in immature B cells. CD19 is expressed on all normal, mitogen-stimulated, and malignant B cells, excluding plasma cells. CD19 expression is even maintained in B lineage cells that undergo neoplastic transformation. Because of its ubiquity on all B cells, it can function as a B cell marker and a target for immunotherapies targeting neoplastic lymphocytes.
+
+Function
+
+Role in development & survival
+
+Decisions to live, proliferate, differentiate, or die are continuously being made during B cell development. These decisions are tightly regulated through B cell receptor (BCR) interactions and signaling. The presence of a functional BCR is necessary during antigen-dependent differentiation and for continued survival in the peripheral immune system. Essential to the functionality of a BCR is the presence of CD19. Experiments using CD19 knockout mice found that CD19 is essential for B cell differentiative events including the formation of B-1, germinal center, and marginal zone (MZ) B cells. Analysis of mixed bone marrow chimeras suggest that prior to an initial antigen encounter, CD19 promotes the survival of naive recirculating B cells and increases the in vivo life span of B cells in the peripheral B cell compartment. Ultimately, CD19 expression is integral to the propagation of BCR-induced survival signals and the maintenance of homeostasis through tonic signaling.
+
+BCR-independent
+
+Paired box transcription factor 5 (PAX5) plays a major role in B cell differentiation from pro B cell to mature B cell, the point at which the expression of non-B-lineage genes is permanently blocked. Part of B cell differentiation is controlling c-MYC protein stability and steady-state levels through CD19, which acts as a PAX5 target and downstream effector of the PI3K-AKT-GSK3β axis. CD19 signaling, independent of BCR functions, increases c-MYC protein stability. Using a loss of function approach, researchers found reduced MYC levels in B cells of CD19 knockdown mice. CD19 signaling involves the recruitment and activation of phosphoinositide 3-kinase (PI3K) and later downstream, the activation of protein kinase B (Akt). The Akt-GSK3β axis is necessary for MYC activation by CD19 in BCR-negative cells, with higher levels of Akt activation corresponding to higher levels of MYC. CD19 is a crucial BCR-independent regulator of MYC-driven neoplastic growth in B cells since the CD19-MYC axis promotes cell expansion in vitro and in vivo.
+
+CD19/CD21 complex
+
+On the cell surface, CD19 is the dominant signaling component of a multimolecular complex including CD21 (CR2, a complement receptor), TAPA-1 (a tetraspanin membrane protein), and CD225. The CD19/CD21 complex arises from C3d binding to CD21; however, CD19 does not require CD21 for signal transduction. CD81, attached to CD19, is a part of the tetraspanin web, acts as a chaperone protein, and provides docking sites for molecules in various different signal transduction pathways.
+
+BCR-dependent
+
+While colligated with the BCR, the CD19/CD21 complex bound to the antigen-complement complex can decrease the threshold for B cell activation. CD21, complement receptor 2, can bind fragments of C3 that have covalently attached to glycoconjugates by complement activation. Recognition of an antigen by the complement system enables the CD19/CD21 complex and associated intracellular signaling molecules to crosslink to the BCR. This results in phosphorylation of the cytoplasmic tail of CD19 by BCR-associated tyrosine kinases, ensuing is the binding of additional Src-family kinases, augmentation of signaling through the BCR, and recruitment of PI3K. The localization of PI3K initiates another signaling pathway leading to Akt activation. Varying expression of CD19 on the cell surface modulates tyrosine phosphorylation and Akt kinase signaling and by extension, MHC class II mediated signaling.
+
+Activated spleen tyrosine kinase (Syk) leads to phosphorylation of the scaffold protein, BLNK, which provides multiple sites for tyrosine phosphorylation and recruits SH2-containing enzymes and adaptor proteins that can form various multiprotein signaling complexes. In this way, CD19 can modulate the threshold for B cell activation. This is important during primary immune response, prior to affinity maturation, amplifying the response of low affinity BCRs to low concentrations of antigen.
+
+Interactions
+
+CD19 has been shown to interact with:
+
+CD81
+
+CD82
+
+Complement receptor 2
+
+VAV2
+
+In disease
+
+Autoimmunity & immunodeficiency
+
+Mutations in CD19 are associated with severe immunodeficiency syndromes characterized by diminished antibody production. Additionally, mutations in CD21 and CD81 can also underlie primary immunodeficiency due to their role in the CD19/CD21 complex formation. These mutations can lead to hypogammaglobulinaemia as a result of poor response to antigen and defective immunological memory. Researchers found changes in the constitution of B lymphocyte population and reduced amounts of switched memory B cells with high terminal differentiation potential in patients with Down Syndrome. CD19 has also been implicated in autoimmune diseases, including rheumatoid arthritis and multiple sclerosis, and may be a useful treatment target.
+
+Mouse model research shows that CD19 deficiency can lead to hyporesponsiveness to transmembrane signals and weak T cell dependent humoral response, that in turn leads to an overall impaired humoral immune response. Additionally CD19 plays a role in modulating MHC Class II expression and signaling, which can be affected by mutations. CD19 deficient B cells exhibit selective growth disadvantage; therefore, it is rare for CD19 to be absent in neoplastic B cells, as it is essential for development.
+
+Cancer
+
+Since CD19 is a marker of B cells, the protein has been used to diagnose cancers that arise from this type of cell - notably B cell lymphomas, acute lymphoblastic leukemia (ALL), and chronic lymphocytic leukemia (CLL). The majority of B cell malignancies express normal to high levels of CD19. The most current experimental anti-CD19 immunotoxins in development work by exploiting the widespread presence of CD19 on B cells, with expression highly conserved in most neoplastic B cells, to direct treatment specifically towards B-cell cancers. However, it is now emerging that the protein plays an active role in driving the growth of these cancers, most intriguingly by stabilizing the concentrations of the MYC oncoprotein. This suggests that CD19 and its downstream signaling may be a more attractive therapeutic target than initially suspected.
+
+CD19-targeted therapies based on T cells that express CD19-specific chimeric antigen receptors (CARs) have been utilized for their antitumor abilities in patients with CD19+ lymphoma and leukemia, first against Non-Hodgkin's Lymphoma (NHL), then against CLL in 2011, and then against ALL in 2013. CAR-19 T cells are genetically modified T cells that express a targeting moiety on their surface that confers T cell receptor (TCR) specificity towards CD19+ cells. CD19 activates the TCR signaling cascade that leads to proliferation, cytokine production, and ultimately lysis of the target cells, which in this case are CD19+ B cells. CAR-19 T cells are more effective than anti-CD19 immunotoxins because they can proliferate and remain in the body for a longer period of time. This comes with a caveat since now CD19− immune escape facilitated by splice variants, point mutations, and lineage switching can form as a major form of therapeutic resistance for patients with ALL.

@@ -1,0 +1,14 @@
+{
+  "title": "Yandex",
+  "source_name": "Wikipedia, The Free Encyclopedia (English)",
+  "authors": [],
+  "affiliations": [],
+  "source_uri": "https://en.wikipedia.org/w/index.php?oldid=1382077537",
+  "source_type": "reference",
+  "publication_status": "English Wikipedia article, revision 1382077537 of 2026-10-26. Written and edited by volunteer contributors (see the revision history); not peer-reviewed, and later revisions may differ. Included because FEVER dev-set claims refer to this article.",
+  "disclosures": "None stated in the article.",
+  "published": "2026-10-26",
+  "rights": "CC BY-SA 4.0. Attribution: Wikipedia contributors. Text-only extraction of the article prose; redistributed under the same license.",
+  "retrieved_at": "2026-11-04T02:24:30+00:00",
+  "expected_sha256": "10b588fee2dd77d32668a17460fb61355239d337dda5804496432ed4a0d729c3"
+}

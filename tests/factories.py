@@ -25,7 +25,7 @@ def provenance_kwargs(**overrides: Any) -> dict[str, Any]:
         "source_type": SourceType.OTHER,
         "publication_status": "Test fixture",
         "disclosures": "None disclosed in the document",
-        "published": "2004-07-22",
+        "published": "2019-05-14",
         "retrieved_at": FIXED_TIME,
         "rights": "Test fixture",
     }

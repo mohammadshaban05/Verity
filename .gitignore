@@ -12,13 +12,15 @@ build/
 .env
 .env.*
 
-# Large source downloads (provenance is recorded in metadata, not the raw files)
-data/corpus/raw/
+# Corpus texts (raw/<id>.txt) are committed: every seed source is redistributable
+# (ADR-013). The original downloads they were extracted from are not.
+data/corpus/raw/*
+!data/corpus/raw/*.txt
 
 # Editors / OS
 .DS_Store
 .vscode/
 .idea/
 
-# Built snapshots contain full source text (possibly copyrighted)
+# Built snapshots are derived data: rebuild with `verity ingest`
 data/snapshots/

@@ -4,20 +4,30 @@ Usage:
     uv run --group corpus python scripts/fetch_corpus.py [--only ID] [--force] [--accept]
 
 For each provenance record it does the following:
-  - downloads ``source_uri`` and keeps the original bytes (raw/<id>.pdf or .html)
-    so the text extraction can be audited
+  - downloads ``source_uri`` and keeps the original bytes (raw/<id>.pdf, .html or
+    .json) so the text extraction can be audited
   - extracts the text to raw/<id>.txt (PDF pages are separated by a form feed)
   - on first fetch, writes ``retrieved_at`` and ``expected_sha256`` into the record
   - on later fetches, reports whether the result reproduces the recorded hash. With
     --accept it records the new version instead.
 
-Everything in raw/ is gitignored. Source texts are never committed (licensing).
+Supported sources:
+  - a pinned Wikipedia revision, ``https://<lang>.wikipedia.org/w/index.php?oldid=N``,
+    fetched as MediaWiki parser output and reduced to the article prose
+  - a SciFact abstract, ``<SciFact release tarball URL>#doc_id=N``: title, blank
+    line, then the abstract sentences joined by spaces
+  - any other URL serving a PDF, or HTML with an ``itemprop="articleBody"`` element
+
+The extracted texts (raw/*.txt) are committed when the source's license allows
+redistribution (ADR-013). Original downloads are gitignored.
 """
 
 import argparse
 import io
 import json
 import sys
+import tarfile
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from html.parser import HTMLParser
@@ -27,6 +37,9 @@ from verity.models import sha256_hex
 from verity.normalize import normalize_bytes
 
 USER_AGENT = "Mozilla/5.0 (compatible; Verity research corpus builder)"
+# Wikimedia asks API clients to identify themselves with a contact URL.
+WIKIMEDIA_USER_AGENT = "VerityCorpusBuilder/0.1 (https://github.com/mohammadshaban05/Verity)"
+_TARBALLS: dict[str, dict[int, dict]] = {}  # SciFact corpus per release URL, per run
 
 
 def main() -> int:
@@ -58,19 +71,18 @@ def main() -> int:
 
 
 def _fetch_one(doc_id: str, record: dict, record_path: Path, raw_dir: Path, accept: bool) -> bool:
-    request = urllib.request.Request(record["source_uri"], headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        payload = response.read()
-        content_type = response.headers.get_content_type()
-
-    if content_type == "application/pdf" or payload.startswith(b"%PDF"):
-        (raw_dir / f"{doc_id}.pdf").write_bytes(payload)
-        text = extract_pdf_text(payload)
-    elif content_type == "text/html":
-        (raw_dir / f"{doc_id}.html").write_bytes(payload)
-        text = extract_article_text(payload.decode("utf-8"))
+    uri = urllib.parse.urlsplit(record["source_uri"])
+    oldid = urllib.parse.parse_qs(uri.query).get("oldid")
+    if uri.netloc.endswith(".wikipedia.org") and oldid:
+        html = fetch_wikipedia_revision(uri.netloc, int(oldid[0]))
+        (raw_dir / f"{doc_id}.html").write_text(html, encoding="utf-8")
+        text = extract_wikipedia_text(html)
+    elif uri.path.endswith("data.tar.gz") and uri.fragment.startswith("doc_id="):
+        abstract = fetch_scifact_abstract(record["source_uri"])
+        (raw_dir / f"{doc_id}.json").write_text(json.dumps(abstract) + "\n", encoding="utf-8")
+        text = scifact_text(abstract)
     else:
-        raise ValueError(f"unsupported content type {content_type!r}")
+        text = _fetch_url(doc_id, record["source_uri"], raw_dir)
 
     data = text.encode("utf-8")
     (raw_dir / f"{doc_id}.txt").write_bytes(data)
@@ -88,6 +100,58 @@ def _fetch_one(doc_id: str, record: dict, record_path: Path, raw_dir: Path, acce
     record_path.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", "utf-8")
     print(f"new    {doc_id}: {len(text):,} chars, sha256 {digest[:12]} recorded")
     return True
+
+
+def _fetch_url(doc_id: str, url: str, raw_dir: Path) -> str:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        payload = response.read()
+        content_type = response.headers.get_content_type()
+    if content_type == "application/pdf" or payload.startswith(b"%PDF"):
+        (raw_dir / f"{doc_id}.pdf").write_bytes(payload)
+        return extract_pdf_text(payload)
+    if content_type == "text/html":
+        (raw_dir / f"{doc_id}.html").write_bytes(payload)
+        return extract_article_text(payload.decode("utf-8"))
+    raise ValueError(f"unsupported content type {content_type!r}")
+
+
+def fetch_wikipedia_revision(host: str, revid: int) -> str:
+    """Parser output (HTML) of one pinned revision. Templates are expanded with
+    their current versions, so a re-fetch can drift even for a fixed revision;
+    the recorded hash detects that."""
+    query = urllib.parse.urlencode(
+        {
+            "action": "parse",
+            "oldid": revid,
+            "prop": "text",
+            "format": "json",
+            "formatversion": 2,
+            "disableeditsection": 1,
+            "disablelimitreport": 1,
+        }
+    )
+    request = urllib.request.Request(
+        f"https://{host}/w/api.php?{query}", headers={"User-Agent": WIKIMEDIA_USER_AGENT}
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return json.load(response)["parse"]["text"]
+
+
+def fetch_scifact_abstract(uri: str) -> dict:
+    url, _, fragment = uri.partition("#")
+    if url not in _TARBALLS:
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=300) as response:
+            archive = tarfile.open(fileobj=io.BytesIO(response.read()), mode="r:gz")
+        lines = archive.extractfile("data/corpus.jsonl").read().decode("utf-8").splitlines()
+        _TARBALLS[url] = {d["doc_id"]: d for d in (json.loads(line) for line in lines if line)}
+    return _TARBALLS[url][int(fragment.removeprefix("doc_id="))]
+
+
+def scifact_text(abstract: dict) -> str:
+    sentences = " ".join(" ".join(s.split()) for s in abstract["abstract"])
+    return f"{' '.join(abstract['title'].split())}\n\n{sentences}\n"
 
 
 def extract_pdf_text(payload: bytes) -> str:
@@ -173,6 +237,99 @@ def extract_article_text(html: str) -> str:
     extractor.close()
     if not extractor.blocks:
         raise ValueError('no itemprop="articleBody" content found')
+    return "\n\n".join(extractor.blocks) + "\n"
+
+
+class _WikipediaExtractor(HTMLParser):
+    """Collect the prose of a Wikipedia article from MediaWiki parser output.
+
+    Kept: paragraphs, headings, list items and block quotes, in document order,
+    with whitespace collapsed inside each block.
+    Dropped:
+      - tables (infoboxes, navboxes, data tables), figures and image captions
+      - hatnotes, maintenance banners, the table of contents
+      - citation markers ("[12]") and inline maintenance tags ("[citation needed]")
+      - math markup
+      - everything from the first end-matter heading on ("See also",
+        "References", "External links" and similar)
+    """
+
+    BLOCKS = {"p", "h2", "h3", "h4", "h5", "h6", "li", "dd", "dt", "blockquote"}
+    SKIP_TAGS = {"style", "script", "table", "figure", "link", "meta"}
+    SKIP_CLASSES = {
+        "ambox", "gallery", "hatnote", "infobox", "metadata", "mw-editsection",
+        "mw-empty-elt", "mwe-math-element", "navbox", "navigation-not-searchable",
+        "noprint", "portalbox", "reference", "reflist", "references", "shortdescription",
+        "sidebar", "side-box", "thumb", "toc",
+    }  # fmt: skip
+    END_SECTIONS = {
+        "bibliography", "citations", "external links", "explanatory notes", "footnotes",
+        "further reading", "notes", "notes and references", "references", "see also",
+        "sources", "works cited",
+    }  # fmt: skip
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.skip_tag: str | None = None
+        self.skip_open = 0
+        self.finished = False
+        self.blocks: list[str] = []
+        self.current: list[str] = []
+        self.current_tag: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.finished:
+            return
+        if self.skip_tag is not None:
+            if tag == self.skip_tag:
+                self.skip_open += 1
+            return
+        attributes = dict(attrs)
+        classes = set((attributes.get("class") or "").split())
+        if (
+            tag in self.SKIP_TAGS
+            or classes & self.SKIP_CLASSES
+            or attributes.get("role") == "note"
+            or (tag == "div" and "thumbinner" in classes)
+        ):
+            self.skip_tag, self.skip_open = tag, 1
+        elif tag in self.BLOCKS:
+            self._flush()
+            self.current_tag = tag
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.finished:
+            return
+        if self.skip_tag is not None:
+            if tag == self.skip_tag:
+                self.skip_open -= 1
+                if self.skip_open == 0:
+                    self.skip_tag = None
+        elif tag in self.BLOCKS:
+            self._flush()
+
+    def handle_data(self, data: str) -> None:
+        if not self.finished and self.skip_tag is None:
+            self.current.append(data)
+
+    def _flush(self) -> None:
+        block = " ".join("".join(self.current).split())
+        tag, self.current, self.current_tag = self.current_tag, [], None
+        if not block:
+            return
+        if tag == "h2" and block.casefold() in self.END_SECTIONS:
+            self.finished = True
+            return
+        self.blocks.append(block)
+
+
+def extract_wikipedia_text(html: str) -> str:
+    extractor = _WikipediaExtractor()
+    extractor.feed(html)
+    extractor.close()
+    extractor._flush()
+    if not extractor.blocks:
+        raise ValueError("no article prose found in the Wikipedia parser output")
     return "\n\n".join(extractor.blocks) + "\n"
 
 

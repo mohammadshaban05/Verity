@@ -29,6 +29,7 @@ class SourceType(StrEnum):
     OFFICIAL = "official"
     JOURNALISM = "journalism"
     ACADEMIC = "academic"
+    REFERENCE = "reference"  # encyclopedias and other tertiary works, e.g. Wikipedia
     CRITIQUE = "critique"
     OTHER = "other"
 

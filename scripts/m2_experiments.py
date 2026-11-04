@@ -1,4 +1,4 @@
-"""M2 retrieval experiments: reference comparison, ablations, PDF artifacts, failures.
+"""M2 retrieval experiments: reference comparison, ablations, artifacts, failures.
 
 Usage:
     uv run python scripts/m2_experiments.py [--snapshot DIR] [--gold FILE]
@@ -6,10 +6,10 @@ Usage:
 Read-only: loads the snapshot and gold set, prints a plain-text report. The
 numbers in docs/experiments/m2-bm25.md come from this script.
 
-The gold set is small (44 claims) and was written by the same people who built
-the system, so these results describe this corpus only. Parameter sweeps are
-reported for understanding, not for tuning: choosing k1/b on these 37 answerable
-claims and then reporting the same numbers would overfit the evaluation.
+The gold set is small (a few dozen claims), so these results describe this
+corpus only. Parameter sweeps are reported for understanding, not for tuning:
+choosing k1/b on the same answerable claims and then reporting the resulting
+numbers would overfit the evaluation.
 """
 
 import argparse
@@ -35,6 +35,11 @@ from verity.evaluation import (
 from verity.retrieval import Analyzer, BM25Retriever
 from verity.retrieval.analyze import _KERNING_SPLIT, _LINE_BREAK_HYPHEN, _SPACING_DIACRITIC
 from verity.store import load_snapshot
+
+
+def source_group(doc_id: str) -> str:
+    """Corpus collection a document belongs to: "wiki", "simplewiki" or "scifact"."""
+    return doc_id.split("-", 1)[0]
 
 
 def section(title: str) -> None:
@@ -87,15 +92,22 @@ def main() -> None:
     # ------------------------------------------------------------------------------
     section("1. Corpus and gold set")
     print(f"documents={len(documents)} passages={len(passages)}")
-    for doc_id, n in sorted(Counter(p.doc_id for p in passages).items()):
-        print(f"  {doc_id:42} {n:4d} passages ({n / len(passages):5.1%})")
+    docs_per_group = Counter(source_group(d.id) for d in documents)
+    passages_per_group = Counter(source_group(p.doc_id) for p in passages)
+    for group, n in sorted(passages_per_group.items()):
+        print(f"  {group:12} {docs_per_group[group]:3d} documents {n:5d} passages "
+              f"({n / len(passages):5.1%})")  # fmt: skip
+    largest = Counter(p.doc_id for p in passages).most_common(5)
+    print("  largest documents: " + ", ".join(f"{d} ({n})" for d, n in largest))
     print(f"claims={len(claims)} labels={dict(Counter(c.label for c in claims))}")
+    print(f"datasets={dict(Counter(c.dataset for c in claims))}")
+    print(f"topics={dict(Counter(c.topic for c in claims))}")
     print(f"evidence items={sum(len(c.evidence) for c in claims)}")
     multi = sum(len(r.passage_ids) > 1 for items in resolved.values() for r in items)
     print(f"evidence items contained in >1 passage (chunk overlap): {multi}")
 
     # ------------------------------------------------------------------------------
-    section("2. Baseline: BM25 (lucene idf, k1=1.2, b=0.75, full analyzer)")
+    section("2. Baseline: BM25 (lucene idf, k1=1.2, b=0.75, default analyzer)")
     t0 = time.perf_counter()
     index = BM25Retriever(passages)
     build = time.perf_counter() - t0
@@ -113,7 +125,7 @@ def main() -> None:
     # ------------------------------------------------------------------------------
     section("3. Reference comparison with rank_bm25 (BM25Okapi)")
     raw = Analyzer(repair_pdf_artifacts=False, remove_stopwords=False, stem=False)
-    for analyzer_name, analyzer in (("raw analyzer", raw), ("full analyzer", Analyzer())):
+    for analyzer_name, analyzer in (("raw analyzer", raw), ("default analyzer", Analyzer())):
         ours = BM25Retriever(passages, analyzer=analyzer, k1=1.5, b=0.75, idf="okapi")
         ref = BM25Okapi([analyzer(p.text) for p in passages], k1=1.5, b=0.75, epsilon=0.25)
         max_diff, top10_same = 0.0, 0
@@ -141,83 +153,70 @@ def main() -> None:
     # ------------------------------------------------------------------------------
     section("4. Analyzer ablations")
     print(HEADER)
+    default_name = "default (stopwords + stem)"
     configs = {
         "raw (casefold + tokenize only)": raw,
-        "+ PDF repair": Analyzer(remove_stopwords=False, stem=False),
-        "+ PDF repair + stopwords": Analyzer(stem=False),
-        "full (repair + stopwords + stem)": Analyzer(),
-        "full without PDF repair": Analyzer(repair_pdf_artifacts=False),
-        "full without stopwords": Analyzer(remove_stopwords=False),
-        "full without stemming": Analyzer(stem=False),
+        "+ stopwords": Analyzer(stem=False),
+        default_name: Analyzer(),
+        "default + PDF repair": Analyzer(repair_pdf_artifacts=True),
+        "default without stopwords": Analyzer(remove_stopwords=False),
+        "default without stemming": Analyzer(stem=False),
     }
     ablation = {name: run(analyzer=a) for name, a in configs.items()}
     for name, report in ablation.items():
         print(row(name, report))
-    print("\nMRR difference vs. full analyzer, paired bootstrap over claims (95% interval):")
+    print("\nMRR difference vs. default analyzer, paired bootstrap over claims (95% interval):")
     for name, report in ablation.items():
-        if report is not ablation["full (repair + stopwords + stem)"]:
-            d, lo, hi = paired_bootstrap(ablation["full (repair + stopwords + stem)"], report)
+        if name != default_name:
+            d, lo, hi = paired_bootstrap(ablation[default_name], report)
             print(f"  {name:34} {d:+.3f}  [{lo:+.3f}, {hi:+.3f}]")
 
     # ------------------------------------------------------------------------------
-    section("5. PDF extraction artifacts")
+    section("5. Extraction artifacts and the PDF repair rules")
     patterns = {
-        "kerning split ('T ower')": _KERNING_SPLIT,
+        "kerning split ('T able')": _KERNING_SPLIT,
         "line-break hyphen ('re-\\nduced')": _LINE_BREAK_HYPHEN,
-        "spacing diacritic ('Baˇ zant')": _SPACING_DIACRITIC,
+        "spacing diacritic ('Dvoˇ rák')": _SPACING_DIACRITIC,
         "ligature (ﬁ ﬂ ﬀ ﬃ ﬄ)": re.compile("[ﬀ-ﬄ]"),
         "page break (\\f)": re.compile("\f"),
-        "'intentionally left blank'": re.compile(r"intentionally\s+left\s+blank", re.I),
-        "running header ('Final 8-9.5pp')": re.compile(r"Final \d+-\d+\.\d+pp"),
     }
-    print(f"{'document':42} " + " ".join(f"{i + 1:>6}" for i in range(len(patterns))))
-    for doc in documents:
-        counts = [len(p.findall(doc.text)) for p in patterns.values()]
-        print(f"{doc.id:42} " + " ".join(f"{n:6d}" for n in counts))
-    for i, name in enumerate(patterns, start=1):
-        print(f"  {i}: {name}")
+    print(f"{'pattern':36} {'matches':>8} {'documents':>10}")
+    for name, pattern in patterns.items():
+        counts = [len(pattern.findall(doc.text)) for doc in documents]
+        print(f"{name:36} {sum(counts):8d} {sum(n > 0 for n in counts):10d}")
 
-    # Figure and table text: axis labels and numbers extracted as a word stream.
+    print("\nMost frequent kerning-rule matches (would be joined if repair were on):")
+    joins: Counter[tuple[str, str]] = Counter()
+    for doc in documents:
+        for m in _KERNING_SPLIT.finditer(doc.text):
+            joined = Analyzer(repair_pdf_artifacts=True)(m.group(0))
+            joins[(m.group(0), " ".join(joined))] += 1
+    for (span, terms), n in joins.most_common(15):
+        print(f"  {n:4d}  {span!r:22} -> {terms}")
+
+    # Figure and table text: numbers extracted as a word stream.
     def numeric_share(text: str) -> float:
         tokens = raw(text)
         return sum(t.isdigit() for t in tokens) / max(len(tokens), 1)
 
     figure_like = {p.id for p in passages if numeric_share(p.text) >= 0.25}
     in_top10 = sum(i in figure_like for r in baseline.results for i in r.ranked_ids[:10])
-    print("\npassages where >= 25% of tokens are numbers (figures, tables, TOC, references):")
-    for doc_id, n in sorted(Counter(by_id[i].doc_id for i in figure_like).items()):
-        print(f"  {doc_id:42} {n:4d}")
+    print(f"\npassages where >= 25% of tokens are numbers: {len(figure_like)} "
+          f"({dict(Counter(source_group(by_id[i].doc_id) for i in figure_like))})")  # fmt: skip
     print(f"  share of all top-10 results that are such passages: "
           f"{in_top10 / sum(len(r.ranked_ids[:10]) for r in baseline.results):.1%} "
           f"(corpus share {len(figure_like) / len(passages):.1%})")  # fmt: skip
 
-    print("\nMost frequent kerning-split joins (check they are real words):")
-    joins: Counter[tuple[str, str]] = Counter()
-    for doc in documents:
-        for m in _KERNING_SPLIT.finditer(doc.text):
-            joined = Analyzer()(m.group(0))
-            joins[(m.group(0), " ".join(joined))] += 1
-    for (span, terms), n in joins.most_common(25):
-        print(f"  {n:4d}  {span!r:22} -> {terms}")
-
-    print("\nRepair ablation by evidence document (full analyzer with vs. without repair):")
-    full = ablation["full (repair + stopwords + stem)"]
-    norepair = ablation["full without PDF repair"]
-    by_doc: dict[str, list[tuple[float, float]]] = {}
-    for a, b in zip(full.answerable, norepair.answerable, strict=True):
-        for item, ra, rb in zip(resolved[a.claim.id], a.evidence_ranks, b.evidence_ranks,
-                                strict=True):  # fmt: skip
-            rr = [1 / r if r else 0.0 for r in (ra, rb)]
-            by_doc.setdefault(item.evidence.doc_id, []).append((rr[0], rr[1]))
-    for doc_id, pairs in sorted(by_doc.items()):
-        with_repair, without = mean(p[0] for p in pairs), mean(p[1] for p in pairs)
-        print(f"  {doc_id:42} n={len(pairs):2d}  mean 1/rank with repair {with_repair:.3f}  "
-              f"without {without:.3f}")  # fmt: skip
-    print("\nClaims whose first-relevant rank changed with repair:")
-    for a, b in zip(full.answerable, norepair.answerable, strict=True):
+    print("\nClaims whose first-relevant rank changes when PDF repair is turned on:")
+    repaired = ablation["default + PDF repair"]
+    changed = 0
+    for a, b in zip(baseline.answerable, repaired.answerable, strict=True):
         ra, rb = _first(a.evidence_ranks), _first(b.evidence_ranks)
         if ra != rb:
-            print(f"  {a.claim.id:9} with repair {ra!s:>5}  without {rb!s:>5}  {a.claim.claim}")
+            changed += 1
+            print(f"  {a.claim.id:10} default {ra!s:>5}  with repair {rb!s:>5}  {a.claim.claim}")
+    if not changed:
+        print("  none")
 
     # ------------------------------------------------------------------------------
     section("6. Parameter sensitivity (reported, NOT used for tuning)")
@@ -229,20 +228,23 @@ def main() -> None:
         print(f"{k1:5.1f} " + " ".join(f"{c:6.3f}" for c in cells))
 
     # ------------------------------------------------------------------------------
-    section("7. Long-document effects and document share of the top 10")
-    lengths = Counter()
+    section("7. Long-document effects and source share of the top 10")
+    terms_per_group: dict[str, list[int]] = {}
     for p in passages:
-        lengths[p.doc_id] += len(index.analyzer(p.text))
-    for doc_id in sorted(lengths):
-        n = sum(p.doc_id == doc_id for p in passages)
-        print(f"  {doc_id:42} mean passage length {lengths[doc_id] / n:6.1f} terms")
-    share = Counter(by_id[i].doc_id for r in baseline.results for i in r.ranked_ids[:10])
+        terms_per_group.setdefault(source_group(p.doc_id), []).append(len(index.analyzer(p.text)))
+    for group, lengths in sorted(terms_per_group.items()):
+        print(f"  {group:12} mean passage length {mean(lengths):6.1f} terms")
+    share = Counter(
+        source_group(by_id[i].doc_id) for r in baseline.results for i in r.ranked_ids[:10]
+    )
     total = sum(share.values())
-    corpus_share = Counter(p.doc_id for p in passages)
-    print(f"\n{'document':42} {'top-10 share':>12} {'corpus share':>12}")
-    for doc_id in sorted(corpus_share):
-        print(f"  {doc_id:40} {share[doc_id] / total:12.1%} "
-              f"{corpus_share[doc_id] / len(passages):12.1%}")  # fmt: skip
+    print(f"\n  {'source':12} {'top-10 share':>12} {'corpus share':>12}")
+    for group in sorted(passages_per_group):
+        print(f"  {group:12} {share[group] / total:12.1%} "
+              f"{passages_per_group[group] / len(passages):12.1%}")  # fmt: skip
+    doc_share = Counter(by_id[i].doc_id for r in baseline.results for i in r.ranked_ids[:10])
+    print("  documents with the largest top-10 share: "
+          + ", ".join(f"{d} {n / total:.1%}" for d, n in doc_share.most_common(5)))  # fmt: skip
 
     redundant = 0
     for r in baseline.results:
@@ -256,16 +258,29 @@ def main() -> None:
           f"across {len(claims)} queries")  # fmt: skip
 
     # ------------------------------------------------------------------------------
-    section("8. Topic confusion: WTC 7 vs. Twin Towers")
-    wtc7_docs = {"hulsey-2020-uaf-wtc7"}
-    tt_docs = {"bazant-2008-wtc-twin-towers", "conversation-2021-twin-towers-collapse"}
-    for topic, wrong in (("wtc7", tt_docs), ("twin_towers", wtc7_docs)):
-        rs = [r for r in baseline.results if r.claim.topic == topic]
-        top5 = [by_id[i].doc_id for r in rs for i in r.ranked_ids[:5]]
-        off = sum(d in wrong for d in top5)
-        print(f"{topic:12} claims={len(rs):2d}: {off}/{len(top5)} top-5 hits come from "
-              f"documents about the other topic ({sorted(wrong)})")  # fmt: skip
-    print("(NIST NCSTAR 1A, the Commission chapter and Schneider are not topic-pure.)")
+    section("8. Source confusion: where do the top-5 hits come from?")
+    print("Share of top-5 hits from a document that holds evidence for the claim,")
+    print("and from the other collection (encyclopedia vs. abstracts):")
+    for dataset in sorted({r.claim.dataset for r in baseline.answerable}):
+        rs = [r for r in baseline.answerable if r.claim.dataset == dataset]
+        top5 = [(r, by_id[i].doc_id) for r in rs for i in r.ranked_ids[:5]]
+        own = sum(d in {e.doc_id for e in r.claim.evidence} for r, d in top5)
+        other = sum(
+            (source_group(d) == "scifact")
+            != all(source_group(e.doc_id) == "scifact" for e in r.claim.evidence)
+            for r, d in top5
+        )
+        print(f"  {dataset:15} claims={len(rs):2d}  evidence documents {own / len(top5):5.1%}  "
+              f"other collection {other / len(top5):5.1%}")  # fmt: skip
+
+    print("\nCross-source claims (evidence in more than one document):")
+    for r in baseline.answerable:
+        if len({e.doc_id for e in r.claim.evidence}) > 1:
+            parts = [
+                f"{item.evidence.doc_id}/{item.evidence.stance[:4]}@{rank}"
+                for item, rank in zip(resolved[r.claim.id], r.evidence_ranks, strict=True)
+            ]
+            print(f"  {r.claim.id:10} [{r.claim.label}] " + ", ".join(parts))
 
     # ------------------------------------------------------------------------------
     section("9. Can the top-1 score detect 'insufficient' claims?")
@@ -277,17 +292,23 @@ def main() -> None:
     for r in baseline.results:
         if not r.answerable:
             top = by_id[r.ranked_ids[0]].doc_id if r.ranked_ids else "-"
-            print(f"  {r.claim.id:9} top score {r.top_score or 0:6.2f} ({top})  {r.claim.claim}")
+            print(f"  {r.claim.id:10} top score {r.top_score or 0:6.2f} ({top})  {r.claim.claim}")
 
     # ------------------------------------------------------------------------------
     section("10. Successes and failures (baseline)")
     ok = sorted((r for r in baseline.answerable), key=lambda r: -r.reciprocal_rank)
     print("Best (relevant passage at rank 1):")
     for r in [r for r in ok if r.reciprocal_rank == 1][:6]:
-        print(f"  {r.claim.id:9} [{r.claim.phrasing}] {r.claim.claim}")
+        print(f"  {r.claim.id:10} [{r.phrasing}] {r.claim.claim}")
     print("\nFailures (no relevant passage in top 10):")
-    for r in baseline.answerable:
-        if r.recall_at(10) == 0:
+    failures = [r for r in baseline.answerable if r.recall_at(10) == 0]
+    for r in failures:
+        _explain_failure(index, r, resolved, by_id)
+    if not failures:
+        print("  none")
+    print("\nSlowest claims (first relevant passage below rank 3):")
+    for r in sorted(baseline.answerable, key=lambda r: r.reciprocal_rank):
+        if r.reciprocal_rank < 1 / 3:
             _explain_failure(index, r, resolved, by_id)
 
 
@@ -303,7 +324,7 @@ def _first(ranks: Sequence[int | None]) -> int | None:
 def _explain_failure(index, result, resolved, by_id) -> None:
     claim = result.claim
     first = _first(result.evidence_ranks)
-    print(f"\n  {claim.id} [{claim.label}/{claim.phrasing}] {claim.claim}")
+    print(f"\n  {claim.id} [{claim.label}/{result.phrasing}] {claim.claim}")
     print(f"    first relevant rank: {first}")
     query_terms = index.analyzer(claim.claim)
     print(f"    query terms: {query_terms}")

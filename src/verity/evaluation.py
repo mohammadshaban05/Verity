@@ -19,6 +19,9 @@ Metrics are computed over answerable claims (those with evidence):
     Recall@k  share of a claim's evidence quotes found in the top k (a quote counts
               as found if any passage containing it is in the top k), averaged over claims
     MRR       mean of 1 / rank of the first relevant passage (0 if none was returned)
+
+Phrasing is measured, not annotated: a claim is "lexical" if at least half of its
+index terms occur in its closest evidence quote, otherwise "paraphrase".
 """
 
 import json
@@ -33,11 +36,13 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from verity.models import Document, Passage
+from verity.retrieval.analyze import Analyzer
 from verity.retrieval.base import Retriever
 
 Label = Literal["supported", "contradicted", "conflicting", "insufficient"]
 Stance = Literal["supports", "contradicts"]
 CUTOFFS = (1, 5, 10)
+LEXICAL_THRESHOLD = 0.5
 
 
 class EvaluationError(ValueError):
@@ -59,7 +64,7 @@ class GoldClaim(BaseModel):
     claim: str
     label: Label
     topic: str
-    phrasing: Literal["lexical", "paraphrase"]
+    origin: str  # "<dataset>:<split>:<id>" for adapted claims, "verity" for our own
     evidence: tuple[Evidence, ...]
     note: str = ""
 
@@ -79,7 +84,25 @@ class GoldClaim(BaseModel):
             raise ValueError(f"label {self.label!r} but evidence stances imply {expected!r}")
         if not self.claim.strip() or any(not e.quote.strip() for e in self.evidence):
             raise ValueError("claim and quotes must not be empty")
+        if not self.origin.strip():
+            raise ValueError("origin must not be empty")
         return self
+
+    @property
+    def dataset(self) -> str:
+        return self.origin.split(":", 1)[0]
+
+
+def lexical_overlap(claim: GoldClaim, analyzer: Analyzer | None = None) -> float | None:
+    """Largest share of the claim's distinct index terms found in one evidence quote,
+    or None for a claim without evidence."""
+    if not claim.evidence:
+        return None
+    analyze = analyzer or Analyzer()
+    terms = set(analyze(claim.claim))
+    if not terms:
+        return 0.0
+    return max(len(terms & set(analyze(e.quote))) / len(terms) for e in claim.evidence)
 
 
 def load_gold(path: Path) -> list[GoldClaim]:
@@ -153,10 +176,17 @@ class ClaimResult:
     top_score: float | None
     evidence_ranks: tuple[int | None, ...]  # best rank of each evidence quote
     stances: tuple[Stance, ...]
+    lexical_overlap: float | None = None
 
     @property
     def answerable(self) -> bool:
         return bool(self.claim.evidence)
+
+    @property
+    def phrasing(self) -> str | None:
+        if self.lexical_overlap is None:
+            return None
+        return "lexical" if self.lexical_overlap >= LEXICAL_THRESHOLD else "paraphrase"
 
     def recall_at(self, k: int) -> float:
         return mean(r is not None and r <= k for r in self.evidence_ranks)
@@ -194,6 +224,7 @@ def evaluate(
     resolved: dict[str, list[ResolvedEvidence]],
     depth: int = 1000,
 ) -> EvaluationReport:
+    analyzer = Analyzer()
     results = []
     for claim in claims:
         hits = retriever.search(claim.claim, k=depth)
@@ -209,6 +240,7 @@ def evaluate(
                 top_score=hits[0].score if hits else None,
                 evidence_ranks=ranks,
                 stances=tuple(item.evidence.stance for item in resolved[claim.id]),
+                lexical_overlap=lexical_overlap(claim, analyzer),
             )
         )
     report = EvaluationReport(results)
@@ -217,13 +249,14 @@ def evaluate(
 
 
 def summarize(results: Sequence[ClaimResult]) -> dict[str, dict[str, float]]:
-    """Metrics overall and by label, topic and phrasing (answerable claims only)."""
+    """Metrics overall and by label, dataset, topic and phrasing (answerable claims only)."""
     groups: dict[str, list[ClaimResult]] = {}
     for r in results:
         for key in (
             f"label={r.claim.label}",
+            f"dataset={r.claim.dataset}",
+            f"phrasing={r.phrasing}",
             f"topic={r.claim.topic}",
-            f"phrasing={r.claim.phrasing}",
         ):
             groups.setdefault(key, []).append(r)
     ordered = {"all": list(results)} | dict(sorted(groups.items()))

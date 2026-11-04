@@ -8,22 +8,24 @@ import pytest
 from pydantic import ValidationError
 
 from factories import make_doc
+from verity.corpus import load_corpus
 from verity.evaluation import (
     EvaluationError,
     GoldClaim,
     evaluate,
     find_quote,
+    lexical_overlap,
     load_gold,
     resolve_evidence,
 )
 from verity.ingest import chunk_document, passage_id
 from verity.models import Passage
 from verity.retrieval import SearchHit
-from verity.store import load_snapshot
+from verity.store import build_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLD = ROOT / "data" / "eval" / "claims.jsonl"
-SNAPSHOT = ROOT / "data" / "snapshots" / "current"
+CORPUS = ROOT / "data" / "corpus"
 
 
 def claim(label: str = "supported", evidence: list[dict] | None = None, **kw) -> GoldClaim:
@@ -33,8 +35,8 @@ def claim(label: str = "supported", evidence: list[dict] | None = None, **kw) ->
         id=kw.pop("id", "c1"),
         claim=kw.pop("claim", "Fire spread."),
         label=label,
-        topic="t",
-        phrasing="lexical",
+        topic=kw.pop("topic", "t"),
+        origin=kw.pop("origin", "verity"),
         evidence=evidence,
         **kw,
     )
@@ -79,6 +81,41 @@ def test_empty_quote_is_rejected() -> None:
         claim("supported", [ev("   ")])
 
 
+def test_empty_origin_is_rejected_and_dataset_is_its_prefix() -> None:
+    with pytest.raises(ValidationError):
+        claim(origin=" ")
+    assert claim(origin="fever:shared_task_dev:123").dataset == "fever"
+    assert claim(origin="verity").dataset == "verity"
+
+
+# --- Measured phrasing ----------------------------------------------------------------
+
+
+def test_lexical_overlap_uses_the_closest_quote() -> None:
+    c = claim(
+        claim="The river floods every spring.",
+        evidence=[ev("Snow melts in April."), ev("the river floods each spring")],
+    )
+    # Claim terms {river, flood, every, spring}; the second quote shares three.
+    assert lexical_overlap(c) == pytest.approx(3 / 4)
+
+
+def test_lexical_overlap_is_undefined_without_evidence() -> None:
+    assert lexical_overlap(claim("insufficient", [])) is None
+
+
+def test_phrasing_is_derived_from_overlap() -> None:
+    doc, passages = _doc_and_passages("The river floods each spring. Snow melts in April.", 200)
+    claims = [
+        claim(id="lex", claim="River floods in spring.", evidence=[ev("The river floods")]),
+        claim(id="para", claim="Meltwater arrives late.", evidence=[ev("Snow melts in April.")]),
+        claim("insufficient", [], id="none", claim="Bridges."),
+    ]
+    resolved = resolve_evidence(claims, [doc], passages)
+    report = evaluate(ScriptedRetriever(passages, {}), claims, resolved)
+    assert [r.phrasing for r in report.results] == ["lexical", "paraphrase", None]
+
+
 def test_load_gold_reports_line_of_bad_record(tmp_path: Path) -> None:
     good = claim().model_dump_json()
     path = tmp_path / "gold.jsonl"
@@ -98,9 +135,9 @@ def test_load_gold_rejects_duplicate_ids(tmp_path: Path) -> None:
 
 
 def test_find_quote_ignores_whitespace_differences_and_finds_every_occurrence() -> None:
-    text = "Fire\nspread quickly. Later, fire   spread again."
-    assert find_quote(text, "fire spread") == [(28, 41)]  # case-sensitive
-    assert find_quote(text, "Fire spread") == [(0, 11)]
+    text = "Rain\nfell quickly. Later, rain   fell again."
+    assert find_quote(text, "rain fell") == [(26, 37)]  # case-sensitive
+    assert find_quote(text, "Rain fell") == [(0, 9)]
     assert find_quote("a b. a b.", "a b.") == [(0, 4), (5, 9)]
 
 
@@ -128,7 +165,7 @@ def test_unknown_document_and_missing_quote_are_reported_together() -> None:
     doc, passages = _doc_and_passages("Fire spread through the floors.")
     claims = [
         claim(id="a", evidence=[ev("Fire spread", doc_id="nope")]),
-        claim(id="b", evidence=[ev("thermite")]),
+        claim(id="b", evidence=[ev("volcano")]),
     ]
     with pytest.raises(EvaluationError) as exc:
         resolve_evidence(claims, [doc], passages)
@@ -221,7 +258,7 @@ def test_summary_excludes_insufficient_claims_and_averages_over_claims() -> None
     assert summary["label=conflicting"]["n"] == 1
 
 
-# --- The real gold set ----------------------------------------------------------------
+# --- The real gold set and committed corpus ----------------------------------------------
 
 
 def test_gold_set_composition() -> None:
@@ -229,12 +266,18 @@ def test_gold_set_composition() -> None:
     assert 30 <= len(claims) <= 50
     labels = Counter(c.label for c in claims)
     assert set(labels) == {"supported", "contradicted", "conflicting", "insufficient"}
+    assert {"fever", "scifact", "wikicontradict", "verity"} <= {c.dataset for c in claims}
+    assert len({c.topic for c in claims}) >= 5  # multi-subject, not one case study
     assert all(json.loads(c.model_dump_json()) for c in claims)
 
 
-@pytest.mark.skipif(not SNAPSHOT.exists(), reason="snapshot not built (run `verity ingest`)")
-def test_every_gold_quote_resolves_against_the_snapshot() -> None:
-    snapshot = load_snapshot(SNAPSHOT)
+def test_every_gold_quote_resolves_against_the_committed_corpus() -> None:
+    # Built from the committed texts, so this runs on a fresh clone without `ingest`.
+    snapshot = build_snapshot(load_corpus(CORPUS))
     claims = load_gold(GOLD)
     resolved = resolve_evidence(claims, snapshot.documents, snapshot.passages)
     assert sum(len(items) for items in resolved.values()) == sum(len(c.evidence) for c in claims)
+    cross_source = [
+        c for c in claims if c.label == "conflicting" and len({e.doc_id for e in c.evidence}) > 1
+    ]
+    assert cross_source, "expected at least one conflict between different sources"

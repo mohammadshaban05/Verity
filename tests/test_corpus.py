@@ -12,7 +12,7 @@ from verity.corpus import CorpusError, load_corpus
 from verity.ingest import chunk_document
 from verity.models import SourceType
 
-TEXT = "The North Tower was struck first.\n\nThe South Tower collapsed first.\n"
+TEXT = "The north bank flooded first.\n\nThe south bank dried first.\n"
 
 
 def record(**overrides: Any) -> dict[str, Any]:
@@ -25,7 +25,7 @@ def record(**overrides: Any) -> dict[str, Any]:
         "source_type": "official",
         "publication_status": "Government report",
         "disclosures": "None disclosed in the document",
-        "published": "2004-07-22",
+        "published": "2019-05-14",
         "retrieved_at": "2026-10-30T12:00:00Z",
         "rights": "Public domain",
     }
@@ -181,7 +181,7 @@ def test_rejects_record_whose_text_is_missing(tmp_path: Path) -> None:
     [
         ({"retrieved_at": "2026-10-30T12:00:00"}, "timezone-aware"),
         ({"published": "2027-01-01"}, "after retrieved_at"),
-        ({"published": "July 2004"}, "YYYY"),
+        ({"published": "May 2019"}, "YYYY"),
         ({"source_type": "reliable"}, "source_type"),
         ({"credibility": 0.9}, "credibility"),  # unknown fields are rejected, not ignored
     ],
@@ -253,3 +253,18 @@ def test_reports_every_problem_at_once(tmp_path: Path) -> None:
 
     assert len(problems) == 3
     assert not any("good" in p for p in problems)
+
+
+# --- The committed seed corpus ----------------------------------------------------------
+
+
+def test_committed_seed_corpus_loads_with_recorded_hashes() -> None:
+    corpus = Path(__file__).resolve().parents[1] / "data" / "corpus"
+    records = sorted((corpus / "sources").glob("*.json"))
+    documents = load_corpus(corpus)  # verifies every text against its recorded hash
+    assert [d.id for d in documents] == [r.stem for r in records]
+    for path in records:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        assert record["expected_sha256"], path.name
+        assert any(lic in record["rights"] for lic in ("CC BY-SA 4.0", "ODC-By 1.0")), path.name
+    assert {d.source_type for d in documents} == {SourceType.REFERENCE, SourceType.ACADEMIC}

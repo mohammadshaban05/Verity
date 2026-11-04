@@ -74,7 +74,7 @@ Short records of significant decisions. Each one gives the context, the decision
 - **Attribution verification:** does source S actually say X? Checked by verbatim quote matching and, later, entailment. The judge and verifier produce judgments of the form "Source S states / contradicts / does not address X", never "X is true".
 - **Claim assessment:** given several attributed statements, what is the status of X? This weighs source type, independence and quality, and it comes later (M8+).
 
-Each `Document` will carry a `source_type` (`official`, `journalism`, `academic`, `critique`, `other`), starting in M1. Reports present attributed statements ("NIST concluded…", "Critics argue…") separately from any overall assessment.
+Each `Document` will carry a `source_type` (`official`, `journalism`, `academic`, `critique`, `other`), starting in M1. `reference`, for encyclopedias and other tertiary works, was added with the general-purpose corpus (ADR-013). Reports present attributed statements ("The agency's report concluded…", "Critics argue…") separately from any overall assessment.
 
 **Tradeoffs.** Outputs are more verbose and less "headline-like". The system can't quietly turn one authoritative source's claim into a fact.
 
@@ -102,7 +102,7 @@ Each `Document` will carry a `source_type` (`official`, `journalism`, `academic`
 - **Models are frozen and reject unknown fields.** A snapshot can't be edited after it is hashed, and typos in stored JSON fail loudly.
 - **Documents:** text must be non-empty (empty text means an ingestion bug), `retrieved_at` must be timezone-aware, and `id` is a slug (`[A-Za-z0-9._-]+`) so it can be safely embedded in passage IDs and filenames.
 - **Chunking contract:** a hard cap of `len(p.text) <= max_chars`; passages trimmed of surrounding whitespace; every non-whitespace character covered; strictly increasing `start` and `end`; at most `overlap` characters shared between neighbouring passages; split preference paragraph > sentence > whitespace > mid-word; greedy packing.
-- **Passage IDs** have the form `<doc_id>@<first 12 hex chars of sha256>:<start>-<end>`, e.g. `nist-ncstar-1a@7c7e5915088e:71-183`. They are deterministic, unique within a document, and readable: you can see the source, version and span. The hash prefix changes when the content changes, so a stored citation can never resolve to a different version of the text. The doc-id character rule excludes `@` and `:`, so IDs parse without ambiguity.
+- **Passage IDs** have the form `<doc_id>@<first 12 hex chars of sha256>:<start>-<end>`, e.g. `wiki-dodo@14cdfeaa0b43:460-1299`. They are deterministic, unique within a document, and readable: you can see the source, version and span. The hash prefix changes when the content changes, so a stored citation can never resolve to a different version of the text. The doc-id character rule excludes `@` and `:`, so IDs parse without ambiguity.
 
 **Algorithm (sliding window with backward snapping), in `src/verity/ingest.py`:**
 1. One regex pass over the text records the places where a passage may end. Each is ranked: *paragraph* (a whitespace run with 2+ line breaks, or `\u2029`), *sentence* (after `.`, `!`, `?`, `…`, also when followed by closing quotes or brackets, plus CJK `。！？` with no following space), or *word* (any other whitespace). The same pass records where sentences and words start. The position lists are sorted, so each later lookup is a binary search (`bisect`).
@@ -122,7 +122,7 @@ Cost is O(n) to find boundaries plus O(log n) per passage. A 4.8M-character docu
 
 ## ADR-009: Corpus layout, provenance records and reproducible snapshots
 
-**Date:** 2026-10-30 · **Status:** Accepted (implemented in M1b)
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M1b); amended by ADR-013 (redistributable texts are now committed)
 
 **Context.** Verity has to cite exact spans of sources that are often copyrighted, while keeping research runs reproducible. It also needs to record where each text came from without treating that information as a judgment of credibility.
 
@@ -153,7 +153,9 @@ Cost is O(n) to find boundaries plus O(log n) per passage. A 4.8M-character docu
   - Loading checks integrity at two levels. File hashes catch any byte change. Semantic checks require every document hash to match its text, and every passage to slice its document exactly and carry its canonical ID.
   - `verify` re-chunks the documents and requires the same passages, which detects changes to the chunker.
 
-**Tradeoffs.** Collaborators have to run the fetch script themselves instead of cloning the texts. A source that changes or disappears online can't be fetched again; the hash shows the drift but can't fix it. Archiving originals (e.g. the Wayback Machine) is a possible follow-up. JSONL is simple and readable, but every load reads the whole snapshot, which is fine at this scale.
+**Amendment (2026-11-03, ADR-013).** Texts whose license allows redistribution are committed (`raw/<id>.txt`); the original downloads stay gitignored. "Commit provenance, not text" still applies to any source that may not be redistributed.
+
+**Tradeoffs.** Collaborators have to run the fetch script themselves instead of cloning the texts (for non-redistributable sources). A source that changes or disappears online can't be fetched again; the hash shows the drift but can't fix it. Archiving originals (e.g. the Wayback Machine) is a possible follow-up. JSONL is simple and readable, but every load reads the whole snapshot, which is fine at this scale.
 
 ---
 
@@ -180,26 +182,28 @@ Deliberately *not* done:
 
 **Date:** 2026-10-30 · **Status:** Accepted (implemented in M2)
 
-**Context.** The stored texts keep PDF artifacts on purpose (ADR-010): kerning splits ("T ower"), line-break hyphens, ligatures and spacing diacritics. These break exact term matching. Retrieval also needs case folding, stemming and stopword removal, all of which would destroy citable text if applied to the snapshot.
+**Context.** The stored texts keep PDF artifacts on purpose (ADR-010): kerning splits ("T able"), line-break hyphens, ligatures and spacing diacritics. These break exact term matching. Retrieval also needs case folding, stemming and stopword removal, all of which would destroy citable text if applied to the snapshot.
 
 **Decision.**
 - **One `Analyzer` turns text into index terms** (`src/verity/retrieval/analyze.py`). It is applied the same way to passages when the index is built and to queries when they are parsed. Its output is used only for scoring. Hits return the original, unmodified `Passage`, so citations still point at exact offsets in the hashed text.
 - **Pipeline:**
-  1. Repair spacing diacritics (before NFKC, which would otherwise split them into a space plus a combining mark).
+  1. (repair) Repair spacing diacritics (before NFKC, which would otherwise split them into a space plus a combining mark).
   2. NFKC, so ligatures become letters.
-  3. Join line-break hyphenation, and join kerning splits after overhanging capitals (T, V, W, Y only; other capitals are real labels, as in "Case B", "Column C").
+  3. (repair) Join line-break hyphenation, and join kerning splits after overhanging capitals (T, V, W, Y only; other capitals are real labels, as in "Case B", "Group C").
   4. Casefold and fold accents.
   5. Tokenize into runs of letters and runs of digits.
   6. Remove English stopwords.
-  7. Harman S-stemmer plus a sibilant rule ("trusses" → "truss").
+  7. Harman S-stemmer plus a sibilant rule ("glasses" → "glass").
 - **BM25 is written by hand** with an inverted index (no retrieval framework). Settings: k1 = 1.2, b = 0.75, Lucene idf `ln(1 + (N − df + 0.5)/(df + 0.5))`, which is always positive. An `okapi` variant reproduces `rank_bm25` exactly and is used only to check correctness. Ties are broken by passage order; passages scoring zero are never returned. `explain()` breaks a score down by query term.
 - **Negations are stopwords.** BM25 has no notion of what "not" applies to. As a term it would only reward passages that contain "not" anywhere, which is common and unrelated to whether they negate this claim. Retrieval finds passages *about* a claim, whichever way they point; deciding their stance is the judge's job (M4).
 - **A weak stemmer on purpose.** The S-stemmer only merges regular plurals. Porter-style stemmers merge words with different meanings ("fired"/"fire", "general"/"generate"). Paraphrase recall is left to dense retrieval (M6).
 
 **Consequences.**
 - Changing the analyzer changes rankings but never citations or hashes.
-- The repairs are heuristics fitted to pypdf's output on this corpus, and are checked by `scripts/m2_experiments.py` (section 5). A new extractor or document type needs that scan re-run.
-- In M2, the measured effect of each analyzer component is within noise (docs/experiments/m2-bm25.md). The components are kept because they make the index reflect what a reader sees, not because they measurably improved metrics.
+- The repairs are heuristics fitted to pypdf's output on the first (PDF) corpus, and are checked by `scripts/m2_experiments.py` (section 5). A new extractor or document type needs that scan re-run.
+- In the first M2 run, the measured effect of each analyzer component was within noise. The components were kept because they make the index reflect what a reader sees, not because they measurably improved metrics.
+
+**Amendment (2026-11-03): PDF repair is off by default.** On the general-purpose corpus (ADR-013), which has no PDFs, the kerning rule matched 39 times and every match was a false join of a real one-letter word: "T cells" → `tcell`, "Saturn V rocket" → `vrocket`, "Edward V was" → `vwa`. The rule cannot tell an artifact from a real word without knowing that the text came from a PDF. `Analyzer(repair_pdf_artifacts=True)` keeps the repairs available for PDF-derived text. The other steps are unchanged. On this corpus the raw analyzer (no stopwords, no stemming) scored higher than the default, +0.067 MRR [+0.017, +0.131], driven by 7 of 41 claims. The default was **not** changed, because choosing it on the evaluation set would be tuning on the test set. That question is open until a held-out split exists.
 
 ---
 
@@ -231,12 +235,44 @@ Deliberately *not* done:
 - **Excluded for now:**
   - reported speech (source A saying "B claims X")
   - hypotheses that are later tested
-  - indirect evidence that needs inference (e.g. "six columns on the south face and one on the west" for "seven columns")
+  - indirect evidence that needs inference (e.g. "Richard III was the uncle of Elizabeth's brothers" as evidence for "Richard III was Elizabeth's uncle")
 
   The policy for these is an open decision.
 - **Parameters are not tuned on this set.** It is an evaluation set, not training data.
 
 **Tradeoffs.**
-- Quote containment misses passages that say the same thing in other words, until pooling finds them. In M2 this understated MRR by about 0.12 before pooling.
+- Quote containment misses passages that say the same thing in other words, until pooling finds them. Before pooling, this understated MRR by about 0.12 in the first M2 run and by 0.056 on the current corpus.
 - Every evidence quote is treated as equally necessary, including partial quotes for compound claims.
-- With 37 answerable claims, differences below about 0.03 MRR are not meaningful (paired bootstrap in `scripts/m2_experiments.py`).
+- With about 40 answerable claims, differences below about 0.025 MRR are not meaningful (paired bootstrap in `scripts/m2_experiments.py`).
+
+**Amendment (2026-11-03).** These changes came with the general-purpose gold set (ADR-013):
+- **`origin`** is now required: `<dataset>:<split>:<id>` for claims adapted from a published dataset, or `verity` for claims written for this project. Results are broken down by dataset.
+- **Phrasing is measured, not annotated.** A claim counts as "lexical" if at least half of its distinct index terms occur in its closest evidence quote, and as "paraphrase" otherwise. A hand-assigned label was subjective and could not be checked.
+- **Adapted labels are re-derived, not copied.** A dataset label refers to the text its annotators saw, such as FEVER's 2017 Wikipedia. Each adapted claim is labelled against our pinned text with our own verbatim quotes. Where the label differs from the dataset's, the claim's note records the original label and the reason.
+
+---
+
+## ADR-013: A general-purpose, redistributable seed corpus
+
+**Date:** 2026-11-03 · **Status:** Accepted (pending review by the project author)
+
+**Context.** The first seed corpus covered a single topic, the collapse of the World Trade Center buildings. The project author had named that topic only as an example of a contested question, not as Verity's subject. A single-topic corpus also over-fits development: retrieval findings, analyzer rules and gold-set conventions were all shaped by one document type (PDF reports) and one subject. Most of its texts could not be redistributed, so a fresh clone could not run the benchmarks.
+
+**Decision.**
+- **The development corpus is neutral, multi-subject and redistributable.** It is built from established datasets where possible:
+  - **Wikipedia articles (CC BY-SA 4.0)**, each pinned to one revision.
+    - Articles behind FEVER dev claims: everyday facts across nine subjects.
+    - Articles that WikiContradict reports as contradicting themselves: conflicting evidence.
+    - Simple English articles on FEVER subjects: a separately written second source, including real disagreements between sources.
+  - **SciFact abstracts (ODC-By 1.0).** These are the cited abstracts of a seeded, label-stratified sample of dev claims, plus seeded random distractors: expert paraphrase and on-topic but non-addressing evidence.
+  - Sources without a clear license, such as Climate-FEVER, are excluded.
+- **Redistributable texts are committed** (`data/corpus/raw/*.txt`), each with its recorded hash. A clone can run the tests and the benchmarks without downloading anything. The fetch script remains as a reproducibility check.
+- **Selection is scripted and seeded.** `scripts/select_corpus.py` writes the provenance records, and `scripts/build_gold.py` writes the gold set. Every choice and its reason is recorded in a record's `publication_status` or a claim's `note`.
+- **Wikipedia is `source_type: reference`.** It is tertiary and edited by volunteers, so it is neither `academic` nor `journalism`. Like every source type, this is descriptive and not a credibility score (ADR-006).
+- **Results from the earlier corpus are kept in the history, marked as superseded,** and never compared numerically with the new results.
+
+**Tradeoffs.**
+- Wikipedia and abstracts are cleaner than the documents Verity will eventually face (long PDFs, reports, critiques), so PDF-specific problems are now covered only by unit tests until such documents return in a later, redistributable form.
+- Conflicts are mostly *inside* single articles; there are only two real conflicts between sources. More are needed.
+- MediaWiki renders old revisions with current templates, so a re-fetch may not reproduce a recorded hash. The committed text is the reference copy.
+- Adapting dataset claims (re-deriving labels, re-taking quotes) costs comparability with published benchmark numbers. In return, every label is checked against the exact text we cite.

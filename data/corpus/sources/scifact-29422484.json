@@ -1,0 +1,14 @@
+{
+  "title": "Phosphorylation of p35 and p39 by Cdk5 determines the subcellular location of the holokinase in a phosphorylation-site-specific manner.",
+  "source_name": "SciFact corpus (Wadden et al., 2020); abstract from S2ORC",
+  "authors": [],
+  "affiliations": [],
+  "source_uri": "https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz#doc_id=29422484",
+  "source_type": "academic",
+  "publication_status": "Abstract of a research article (Semantic Scholar corpus ID 29422484), as distributed in the SciFact corpus. The dataset does not record authors, venue, date or peer-review status, and they were not looked up. Selected as: random distractor.",
+  "disclosures": "Not available: the abstract states none and the full article was not checked.",
+  "published": null,
+  "rights": "ODC-By 1.0 (S2ORC abstracts, via SciFact). Redistributed with attribution.",
+  "retrieved_at": "2026-11-04T02:24:22+00:00",
+  "expected_sha256": "c259bcd58aed766dab5a554838ffdde9ee5ea585613ef9ae686c67310847a704"
+}

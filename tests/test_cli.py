@@ -32,24 +32,24 @@ def test_ingest_reports_corpus_problems(tmp_path: Path, capsys: pytest.CaptureFi
 
 def test_search_and_evaluate(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     corpus, out = tmp_path / "corpus", tmp_path / "snap"
-    add_source(corpus, "fires", "Fires on several floors weakened the steel beams. " * 3)
-    add_source(corpus, "radios", "The radios failed inside the tall building. " * 3)
+    add_source(corpus, "tides", "Tides on several coasts are driven by the moon. " * 3)
+    add_source(corpus, "bees", "The bees pollinated flowers inside the greenhouse. " * 3)
     assert main(["ingest", "--corpus", str(corpus), "--out", str(out)]) == 0
     capsys.readouterr()
 
-    assert main(["search", "steel beams", "--snapshot", str(out)]) == 0
-    assert "fires@" in capsys.readouterr().out
-    assert main(["search", "thermite", "--snapshot", str(out)]) == 0
+    assert main(["search", "driven moon", "--snapshot", str(out)]) == 0
+    assert "tides@" in capsys.readouterr().out
+    assert main(["search", "volcano", "--snapshot", str(out)]) == 0
     assert "no passage matches" in capsys.readouterr().out
 
     gold = tmp_path / "gold.jsonl"
     record = {
         "id": "c1",
-        "claim": "Radios failed in the building.",
+        "claim": "Bees pollinated the flowers.",
         "label": "supported",
         "topic": "t",
-        "phrasing": "lexical",
-        "evidence": [{"doc_id": "radios", "quote": "radios failed", "stance": "supports"}],
+        "origin": "verity",
+        "evidence": [{"doc_id": "bees", "quote": "bees pollinated flowers", "stance": "supports"}],
     }
     gold.write_text(json.dumps(record) + "\n", encoding="utf-8")
     assert main(["evaluate", "--gold", str(gold), "--snapshot", str(out)]) == 0
