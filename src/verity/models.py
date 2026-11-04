@@ -45,8 +45,9 @@ def sha256_hex(text: str) -> str:
 class Provenance(BaseModel):
     """Where a text came from and under what terms.
 
-    ``published`` and ``authors`` are required keys even when unknown (``null`` /
-    ``[]``), so "unknown" is always a deliberate statement, never a forgotten field.
+    Every field is required, even when the value is unknown (``null`` / ``[]`` /
+    "None disclosed in the document"). That way "unknown" is always a deliberate
+    statement, never a forgotten field.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -54,19 +55,35 @@ class Provenance(BaseModel):
     title: str
     source_name: str  # publisher, agency or outlet
     authors: tuple[str, ...]  # people; empty for institutional authorship
+    affiliations: tuple[str, ...]  # institutions as stated in the source; may be empty
     source_uri: str  # the exact URL or location the text was retrieved from
     source_type: SourceType
+    # Venue and review status as documented, e.g. "journal article", "university report;
+    # peer-review status not established". An academic affiliation is not evidence of
+    # peer review.
+    publication_status: str
+    # Funding and conflicts of interest as disclosed by the source itself, or
+    # "None disclosed in the document". Recorded for transparency only; never
+    # converted into a credibility score.
+    disclosures: str
     published: str | None  # ISO 8601 at the precision known: "2008", "2008-11" or "2008-11-20"
     retrieved_at: datetime
     rights: str  # license or copyright status, e.g. "CC BY-ND 4.0"
 
     @model_validator(mode="after")
     def _check_provenance(self) -> Self:
-        for name in ("title", "source_name", "source_uri", "rights"):
+        for name in (
+            "title",
+            "source_name",
+            "source_uri",
+            "publication_status",
+            "disclosures",
+            "rights",
+        ):
             if not getattr(self, name).strip():
                 raise ValueError(f"{name} must not be empty")
-        if any(not author.strip() for author in self.authors):
-            raise ValueError("authors must not contain empty names")
+        if any(not name.strip() for name in self.authors + self.affiliations):
+            raise ValueError("authors and affiliations must not contain empty names")
         if self.retrieved_at.utcoffset() is None:
             raise ValueError("retrieved_at must be timezone-aware")
         if self.published is not None:

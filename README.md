@@ -26,3 +26,13 @@ uv run python -m verity verify                         # integrity + reproducibi
 ```
 
 See [data/corpus/README.md](data/corpus/README.md).
+
+## Search and evaluation
+
+```bash
+uv run python -m verity search "column 79 buckling" -k 5   # BM25 over the snapshot
+uv run python -m verity evaluate                           # Recall@k / MRR on data/eval/claims.jsonl
+uv run python scripts/m2_experiments.py                    # reference comparison, ablations, artifact analysis
+```
+
+Results and failure analysis: [docs/experiments/m2-bm25.md](docs/experiments/m2-bm25.md).

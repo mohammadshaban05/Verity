@@ -53,26 +53,57 @@
   - 2 CLI tests and 4 HTML-extractor tests
   - model tests grew from 36 to 52 with the new provenance rules
 
+### M2: BM25 retrieval + evaluation (2026-10-30, awaiting approval)
+
+- **Sources (user decisions 1–5):**
+  - `bazant-2008-wtc-twin-towers`: the authors' preprint of the *J. Eng. Mech.* 2008 paper, from Bažant's Northwestern page
+  - `hulsey-2020-uaf-wtc7`: the final UAF report, linked from ine.uaf.edu/wtc7
+  - Both are local only. The corpus is now 6 documents and 909 passages.
+- **Provenance:** new required fields `affiliations`, `publication_status` and `disclosures`, filled in for all 6 records. Academic affiliation is not treated as peer review, and funding is recorded, never scored (ADR-009, data/corpus/README.md).
+- **`src/verity/retrieval/`:**
+  - `Retriever` protocol and `SearchHit`
+  - `Analyzer`: search-time PDF-artifact repair, NFKC, folding, stopwords, S-stemmer (ADR-011)
+  - `BM25Retriever`: hand-written inverted index, Lucene and Okapi idf, `explain()`
+- **`src/verity/evaluation.py`:** gold-set schema in which the label must follow from the evidence stances; quote → passage resolution; Recall@k, MRR, and a both-sides check (ADR-012)
+- **Gold set** `data/eval/claims.jsonl`:
+  - 44 claims: 22 supported, 10 contradicted, 5 conflicting, 7 insufficient
+  - 62 verbatim evidence quotes
+  - completed by one pooling round
+- **CLI:** `python -m verity search "<query>"` and `python -m verity evaluate`
+- **Experiments:** `scripts/m2_experiments.py` → [experiments/m2-bm25.md](experiments/m2-bm25.md)
+- **Results** (BM25, k1 = 1.2, b = 0.75, 37 answerable claims):
+  - **R@1 0.538, R@5 0.725, R@10 0.815, MRR 0.736**
+  - Lexical claims: MRR 0.913. Paraphrased: 0.477.
+  - Conflicting claims had both sides in the top 5 for 0 of 5.
+- **Reference check:** the Okapi variant matches `rank_bm25` to within 10⁻¹² on every query × passage pair, with identical top-10 lists for 44/44 queries.
+- **Bug found by the artifact study and fixed:** the kerning repair was joining real one-letter labels ("B temperatures" → `btemperature`). It is now limited to overhanging capitals T, V, W and Y.
+- **Tests:** 239 passing
+  - `test_analyze` 25
+  - `test_bm25` 25: hand-computed score, Hypothesis checks against the formula and against rank_bm25, missing terms, irrelevant passages, duplicates, length normalization, saturation, long-document dominance
+  - `test_evaluation` 21
+  - one new CLI test
+  - provenance tests updated
+
 ## Current limitations
 
-- **PDF extraction artifacts stay in the stored text:** kerning splits (`channels.T ypically`), words hyphenated across lines (272 in Commission chapter 9), and repeated page headers (12× "This page intentionally left blank." in NCSTAR 1A). This is deliberate (ADR-010), but it adds noise for BM25. A different extractor is worth evaluating.
-- **Corpus balance:**
-  - The only academic source (Schneider 2019) argues *against* the "too weak to arrest the collapse" view, and there is no mainstream peer-reviewed engineering paper (e.g. Bažant et al. 2008), because none was available under an open license.
-  - There is no critique source yet. The UAF WTC 7 report is only hosted by an advocacy group.
-  - The Commission chapter covers the emergency response more than the collapse mechanics.
+- **Retrieval is lexical.** Paraphrased claims are found far less often (MRR 0.48 vs 0.91 for lexical). The 4 claims with no relevant passage in the top 10 are all paraphrases, and 3 of them are about the most contested questions.
+- **Both sides of a dispute are rarely in the top 5** (0/5 conflicting claims). Anything downstream that reads only the top 5 would see one side.
+- **The gold set is small and self-built** (37 answerable claims, one annotator, pooled from one system). Differences below about 0.03 MRR are noise. Relevance by quote containment misses paraphrased restatements.
+- **BM25 scores can't detect "insufficient"** (AUROC 0.86, overlapping ranges). Near-topic claims (insurance settlement, EPA air safety) score like answerable ones.
+- **PDF artifacts are still in the index view:** running headers (46 in the Commission chapter), figure-axis text (Bažant), "intentionally left blank" pages, and footnote markers inside words ("building1"). Search-time repair covers kerning, hyphenation, ligatures and diacritics only. The repairs are heuristics fitted to pypdf output on this corpus.
+- **Overlapping passages** take up top-k slots (25 adjacent duplicates in 44 queries).
 - **Page numbers** can be recovered from form-feed markers but aren't exposed yet.
-- **HTML extraction** relies on site-specific rules (`itemprop="articleBody"`, labelled lists, "Read more:"), tested only on The Conversation.
-- **No archival copy:** if a source changes or disappears online, its drift can be detected but it can't be re-fetched.
+- **HTML extraction** relies on site-specific rules, tested only on The Conversation.
+- **No archival copy:** if a source changes or disappears online, its drift can be detected but it can't be re-fetched. Bažant's copy was retrieved over plain HTTP (the host's certificate is invalid), so its integrity rests on the recorded hash.
 - **From M1:** abbreviation splitting, mid-sentence overlap starts, untuned chunking defaults.
-- No evaluation data yet.
 
 ## Next steps (awaiting approval)
 
 **Decisions for the project author**
-1. Which mainstream peer-reviewed paper to add (it can be supplied locally through university library access).
-2. Whether to add a critique source, and which one.
+1. **Hulsey's `source_type`** is `academic`. It is a university-authored research report, and its `publication_status` says it isn't journal-reviewed and its `disclosures` record the advocacy funding. Alternatives are `other`, or a new `report` type for non-journal research reports, which would also fit NIST-style technical reports if they weren't official.
+2. **Gold-set policy for reported speech** ("NIST claims X", written in Hulsey) and for hypotheses that are later tested: count them as relevant evidence or not. They are currently excluded.
+3. **Approve M2,** or ask for changes.
 
-**M2: BM25 retrieval**
-- A `Retriever` protocol and a BM25 implementation
-- A comparison against `rank_bm25`
-- A hand-labeled gold set of 30–50 claims over this corpus, scored with Recall@k and MRR
+**Candidates (not started)**
+- M3: citation verifier (next on the roadmap).
+- Retrieval improvements, ranked in [experiments/m2-bm25.md](experiments/m2-bm25.md) §12: dense/hybrid retrieval (M6), deeper or per-source retrieval for conflicting claims, merging overlapping passages, index-time boilerplate stripping, and a larger gold set with a second annotator.

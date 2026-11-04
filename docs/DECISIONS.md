@@ -138,6 +138,9 @@ Cost is O(n) to find boundaries plus O(log n) per passage. A 4.8M-character docu
   - publication date
   - retrieval timestamp (timezone-aware)
   - rights
+  - affiliations (added in M2): the institutions of the authors, as stated in the document
+  - publication status (added in M2): what kind of publication this is, stated factually ("authors' preprint of a journal article", "university report; journal peer review not established"). **Academic affiliation is not evidence of peer review**, and the field never claims review that the document doesn't establish.
+  - disclosures (added in M2): funding and conflicts of interest as stated by the document or its publisher, or "None stated". Recorded so a reader can weigh them; never turned into a score.
 - **Explicit unknowns.** `published` and `authors` must always be present, written as `null` or `[]` when unknown, so "unknown" is a deliberate statement rather than a forgotten field.
 - **No invented precision.** `published` is ISO 8601 at whatever precision is known: `2008`, `2008-11` or `2008-11-20`.
 - **Strict schema.** Unknown fields are rejected, so there is nowhere to slip in a credibility score.
@@ -170,3 +173,70 @@ Deliberately *not* done:
 - **Quote straightening, whitespace collapsing, dehyphenation, removing headers and footers.** These change what the source literally says. Where comparisons need to ignore them (e.g. citation matching in M3), they are normalized at comparison time and the stored text stays as it is.
 
 **Tradeoffs.** Stored texts keep PDF extraction artifacts (e.g. `channels.T ypically`, words hyphenated across lines, repeated page headers). That makes them faithful to what the extractor produced, but noisier for retrieval. Any rule change requires a new version string, because it changes every hash.
+
+---
+
+## ADR-011: Retrieval analysis happens at search time; stored text is never modified
+
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M2)
+
+**Context.** The stored texts keep PDF artifacts on purpose (ADR-010): kerning splits ("T ower"), line-break hyphens, ligatures and spacing diacritics. These break exact term matching. Retrieval also needs case folding, stemming and stopword removal, all of which would destroy citable text if applied to the snapshot.
+
+**Decision.**
+- **One `Analyzer` turns text into index terms** (`src/verity/retrieval/analyze.py`). It is applied the same way to passages when the index is built and to queries when they are parsed. Its output is used only for scoring. Hits return the original, unmodified `Passage`, so citations still point at exact offsets in the hashed text.
+- **Pipeline:**
+  1. Repair spacing diacritics (before NFKC, which would otherwise split them into a space plus a combining mark).
+  2. NFKC, so ligatures become letters.
+  3. Join line-break hyphenation, and join kerning splits after overhanging capitals (T, V, W, Y only; other capitals are real labels, as in "Case B", "Column C").
+  4. Casefold and fold accents.
+  5. Tokenize into runs of letters and runs of digits.
+  6. Remove English stopwords.
+  7. Harman S-stemmer plus a sibilant rule ("trusses" → "truss").
+- **BM25 is written by hand** with an inverted index (no retrieval framework). Settings: k1 = 1.2, b = 0.75, Lucene idf `ln(1 + (N − df + 0.5)/(df + 0.5))`, which is always positive. An `okapi` variant reproduces `rank_bm25` exactly and is used only to check correctness. Ties are broken by passage order; passages scoring zero are never returned. `explain()` breaks a score down by query term.
+- **Negations are stopwords.** BM25 has no notion of what "not" applies to. As a term it would only reward passages that contain "not" anywhere, which is common and unrelated to whether they negate this claim. Retrieval finds passages *about* a claim, whichever way they point; deciding their stance is the judge's job (M4).
+- **A weak stemmer on purpose.** The S-stemmer only merges regular plurals. Porter-style stemmers merge words with different meanings ("fired"/"fire", "general"/"generate"). Paraphrase recall is left to dense retrieval (M6).
+
+**Consequences.**
+- Changing the analyzer changes rankings but never citations or hashes.
+- The repairs are heuristics fitted to pypdf's output on this corpus, and are checked by `scripts/m2_experiments.py` (section 5). A new extractor or document type needs that scan re-run.
+- In M2, the measured effect of each analyzer component is within noise (docs/experiments/m2-bm25.md). The components are kept because they make the index reflect what a reader sees, not because they measurably improved metrics.
+
+---
+
+## ADR-012: Gold set: labels describe what passages say; relevance is defined by quotes
+
+**Date:** 2026-10-30 · **Status:** Accepted (implemented in M2)
+
+**Context.** Evaluating retrieval needs relevance judgments. On contested topics there is a risk that labels encode the annotator's view of what is true, and that judgments become invalid when chunking changes.
+
+**Decision.**
+- **Each claim lists evidence quotes,** copied verbatim from the snapshot, each with a stance: `supports` or `contradicts`. The stance describes what *the quoted text says* about the claim. It doesn't describe whether the claim is true, and it doesn't describe which source is more credible.
+- **The label follows from the stances,** and the loader enforces this:
+
+  | stances | label |
+  |---|---|
+  | only `supports` | supported |
+  | only `contradicts` | contradicted |
+  | both | conflicting |
+  | none | insufficient |
+
+  "Insufficient" means the corpus doesn't address the claim. **Absence of evidence is never labelled "contradicted".**
+- **Relevance is quote containment.** A quote is located in its document (case-sensitive, any whitespace between words, every occurrence). A passage is relevant if it fully contains an occurrence. Judgments therefore survive changes to chunking. A quote that no longer resolves is a hard error, never a silent skip.
+- **Metrics:**
+  - evidence-level Recall@1/5/10, averaged over claims
+  - MRR of the first relevant passage
+  - computed over answerable claims only
+  - for conflicting claims, also whether *both* stances appear in the top k
+- **Pooling.** After a retriever runs, the top non-gold passages are read and any direct evidence is added, with a note on the claim. Pooling from a single system favours that system, so the gold set must be pooled again for each new retriever.
+- **Excluded for now:**
+  - reported speech (source A saying "B claims X")
+  - hypotheses that are later tested
+  - indirect evidence that needs inference (e.g. "six columns on the south face and one on the west" for "seven columns")
+
+  The policy for these is an open decision.
+- **Parameters are not tuned on this set.** It is an evaluation set, not training data.
+
+**Tradeoffs.**
+- Quote containment misses passages that say the same thing in other words, until pooling finds them. In M2 this understated MRR by about 0.12 before pooling.
+- Every evidence quote is treated as equally necessary, including partial quotes for compound claims.
+- With 37 answerable claims, differences below about 0.03 MRR are not meaningful (paired bootstrap in `scripts/m2_experiments.py`).

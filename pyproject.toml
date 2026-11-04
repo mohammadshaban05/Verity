@@ -16,6 +16,7 @@ corpus = [
 dev = [
     "hypothesis>=6.170.14",
     "pytest>=8",
+    "rank-bm25>=0.2.2",
     "ruff>=0.6",
 ]
 

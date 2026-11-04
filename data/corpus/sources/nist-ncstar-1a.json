@@ -2,8 +2,13 @@
   "title": "Final Report on the Collapse of World Trade Center Building 7 (NIST NCSTAR 1A)",
   "source_name": "National Institute of Standards and Technology (NIST)",
   "authors": [],
+  "affiliations": [
+    "National Institute of Standards and Technology"
+  ],
   "source_uri": "https://nvlpubs.nist.gov/nistpubs/Legacy/NCSTAR/ncstar1a.pdf",
   "source_type": "official",
+  "publication_status": "Final federal investigation report (NIST NCSTAR 1A) under the National Construction Safety Team Act. NIST issued errata separately on 2009-01-30; not checked against this text.",
+  "disclosures": "None disclosed in the document; NIST is a U.S. federal agency.",
   "published": "2008-11",
   "retrieved_at": "2026-10-30T23:03:32+00:00",
   "rights": "Work of the U.S. federal government; not subject to copyright in the United States.",

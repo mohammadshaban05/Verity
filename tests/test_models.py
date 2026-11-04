@@ -105,7 +105,9 @@ def test_document_accepts_slug_ids(good_id: str) -> None:
     Document(**document_kwargs(id=good_id))
 
 
-@pytest.mark.parametrize("field", ["title", "source_name", "source_uri", "rights"])
+@pytest.mark.parametrize(
+    "field", ["title", "source_name", "source_uri", "publication_status", "disclosures", "rights"]
+)
 def test_document_rejects_empty_metadata(field: str) -> None:
     with pytest.raises(ValidationError):
         Document(**document_kwargs(**{field: ""}))
@@ -146,7 +148,9 @@ def test_provenance_rejects_publication_after_retrieval() -> None:
         make_provenance(published="2027-01")  # retrieved 2026-10-30
 
 
-@pytest.mark.parametrize("field", ["published", "authors"])
+@pytest.mark.parametrize(
+    "field", ["published", "authors", "affiliations", "publication_status", "disclosures"]
+)
 def test_provenance_requires_unknown_values_to_be_explicit(field: str) -> None:
     # "Unknown" must be written as null / [], never left out by accident.
     kwargs = provenance_kwargs()
@@ -155,9 +159,10 @@ def test_provenance_requires_unknown_values_to_be_explicit(field: str) -> None:
         Provenance(**kwargs)
 
 
-def test_provenance_rejects_blank_author_names() -> None:
+@pytest.mark.parametrize("field", ["authors", "affiliations"])
+def test_provenance_rejects_blank_names(field: str) -> None:
     with pytest.raises(ValidationError):
-        make_provenance(authors=("A. Author", " "))
+        make_provenance(**{field: ("Valid", " ")})
 
 
 def test_provenance_rejects_whitespace_only_fields() -> None:

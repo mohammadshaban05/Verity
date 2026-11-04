@@ -20,8 +20,11 @@ def record(**overrides: Any) -> dict[str, Any]:
         "title": "Test source",
         "source_name": "Test Publisher",
         "authors": ["A. Author"],
+        "affiliations": ["Test University"],
         "source_uri": "https://example.org/source",
         "source_type": "official",
+        "publication_status": "Government report",
+        "disclosures": "None disclosed in the document",
         "published": "2004-07-22",
         "retrieved_at": "2026-10-30T12:00:00Z",
         "rights": "Public domain",
@@ -149,7 +152,9 @@ def test_rejects_record_missing_required_field(tmp_path: Path, field: str) -> No
     assert field in problem
 
 
-@pytest.mark.parametrize("field", ["published", "authors"])
+@pytest.mark.parametrize(
+    "field", ["published", "authors", "affiliations", "publication_status", "disclosures"]
+)
 def test_unknown_values_must_be_explicit(tmp_path: Path, field: str) -> None:
     meta = record()
     del meta[field]  # omitted, rather than null / []
